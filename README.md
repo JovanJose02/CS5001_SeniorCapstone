@@ -1,1 +1,1 @@
-# CS5001_SeniorCapstone
+# CS5001: Senior Capstone
