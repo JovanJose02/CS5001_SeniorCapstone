@@ -65,12 +65,8 @@ I am a B.S. Computer Science student at the University of Cincinnati with a mino
 
 ## Project Sought
 
-For my senior capstone I am seeking a project that applies **machine learning or AI to a real-world data problem**, ideally one with an end-to-end scope: data collection and cleaning, model development, evaluation, and deployment as a usable application or dashboard.
+I am seeking a capstone project in applied AI systems — full-stack software engineering work where I can own both the AI/ML component and the surrounding engineering. On co-op at Bendix/Knorr-Bremse, I built a production internal tool using Next.js, TypeScript, and SQL Server with a Claude API tool-calling assistant layered on top of live manufacturing data, and outside of that I've explored voice-agent architectures (Twilio + Deepgram + Claude API + RAG).
 
-Areas I am most interested in:
+I'm particularly interested in projects involving web application development, backend systems, cloud infrastructure, databases, and AI-powered automation — especially ones where an LLM does real work inside a larger, well-engineered system rather than sitting in a notebook. I want to contribute to architecture and API design as well as implementation, and gain more experience with the full build-test-deploy cycle alongside a team.
 
-- **Applied deep learning:** computer vision or NLP systems (for example, defect detection, document understanding, or conversational agents built on LLMs).
-- **Predictive analytics and anomaly detection:** using sensor, industrial, or operational data to forecast outcomes or flag unusual behavior, building on my experience with PLC and manufacturing data at Bendix.
-- **Data-driven decision support tools:** dashboards or web applications backed by a database and cloud services (AWS) that turn raw data into actionable insights for stakeholders.
-
-I would welcome a project with an external sponsor or a genuine user base, where I can collaborate with a cross-functional team, work with cloud infrastructure, and deliver something that people actually use. I am comfortable in Python, SQL, and the standard ML stack (Scikit-learn, TensorFlow, PyTorch), and I am eager to take on the full lifecycle of a project from concept to deployment.
+My goal for the capstone is to build a substantial, production-quality system that reflects my interest in both AI Engineer and Software Engineer roles, working with teammates who want to own real technical decisions rather than split up isolated tasks.
