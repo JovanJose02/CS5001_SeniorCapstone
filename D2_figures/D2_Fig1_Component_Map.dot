@@ -1,0 +1,44 @@
+digraph D2_Fig1_Component_Map {
+  compound=true;
+  graph [fontname="Inter", rankdir=TB, labelloc=t, labeljust=l, nodesep=0.3, ranksep=0.5, pad=0.2, label=<<TABLE BORDER="0" CELLPADDING="1" CELLSPACING="0"><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="14"><B>Verified Student Sublease Marketplace</B></FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12.5"><B>D2 Figure 1: component map with glue components and revised interfaces</B></FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Goal: Let UC students fill or find term-length subleases safely by limiting the marketplace to<BR ALIGN="LEFT"/>verified @mail.uc.edu students, matching listings to exact co-op dates, holding discriminatory<BR ALIGN="LEFT"/>listings for review, and giving property managers an approve/reject step before move-in.<BR ALIGN="LEFT"/></FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="10" COLOR="#444444"><B>Conventions: </B>Blue rounded box = component we build (Cn). Gray rounded box = glue module (Gn) used by every backend component.<BR ALIGN="LEFT"/>Gray dashed box = external system (En). Ellipse = actor. Dotted outline = one deployable backend (D-01). Arrow<BR ALIGN="LEFT"/>Ix = interface from caller to callee (reply returns on it). Red label = interface revised in D2 (Part 2.10).<BR ALIGN="LEFT"/>Arrows from the G-band mean every backend component calls that glue module.<BR ALIGN="LEFT"/></FONT></TD></TR><TR><TD> </TD></TR></TABLE>> ];
+  node [fontname="Inter", fontsize=11];
+  edge [fontname="Inter", fontsize=10, color="#333333"];
+  node [shape=box, style="rounded,filled", fillcolor="#DCE6F5", color="#3B5B92"];
+  users [shape=ellipse, style=filled, fillcolor="#FFF3B0", color="#8A7A20", label="Students, managers,\nreviewer"];
+  C1 [label="C1 Web Client"];
+  subgraph cluster_be { label="Backend: one modular monolith"; style="dotted"; color="#555555"; fontsize=11;
+    C2 [label="C2 Identity"];
+    C3 [label="C3 Listing"];
+    C4 [label="C4 Compliance\nScreener"];
+    C5 [label="C5 Search & Match"];
+    C6 [label="C6 Messaging"];
+    C7 [label="C7 Approval"];
+    C8 [label="C8 Notification"];
+    subgraph cluster_g { label="Glue (used by every backend component)"; style="rounded,filled"; fillcolor="#F4F4F4"; color="#999999";
+      node [fillcolor="#E6E6E6", color="#666666"];
+      G1 [label="G1 Auth middleware\nverifyToken()"]; G2 [label="G2 Configuration\ngetConfig()"]; G3 [label="G3 Logging & audit\nlog(), audit.record()"];
+    }
+  }
+  node [style="dashed,rounded", fillcolor=white, color="#777777"];
+  E1 [label="E1 Email\nDelivery API"]; E2 [label="E2 Recipient\nMailboxes"]; E3 [label="E3 Managed\nPostgreSQL"];
+  users -> C1 [label="I1 UI", fontcolor="#333333"];
+  C1 -> C2 [label="I2 auth", fontcolor="#333333"];
+  C1 -> C3 [label="I3a listings\nI3b review", fontcolor="#B3261E"];
+  C1 -> C5 [label="I4 search", fontcolor="#333333"];
+  C1 -> C6 [label="I5 messages", fontcolor="#B3261E"];
+  C1 -> C7 [label="I6 approvals", fontcolor="#333333"];
+  C3 -> C4 [label="I7 screen()", fontcolor="#333333"];
+  C3 -> C5 [label="I8 outbox row", fontcolor="#B3261E"];
+  C3 -> C6 [label="I16 outbox row", fontcolor="#B3261E"];
+  C3 -> C7 [label="I9 outbox row", fontcolor="#B3261E"];
+  C2 -> C8 [label="I10 enqueue()", fontcolor="#B3261E"];
+  C6 -> C8 [label="I11 enqueue()", fontcolor="#B3261E"];
+  C7 -> C8 [label="I12 enqueue()", fontcolor="#B3261E"];
+  C8 -> C2 [label="I17a getContacts()", fontcolor="#B3261E"];
+  C7 -> C2 [label="I17b getEligibility()", fontcolor="#B3261E"];
+  C8 -> E1 [label="I13 send", fontcolor="#333333"];
+  E1 -> E2 [label="I14 SMTP", fontcolor="#333333"];
+  E1 -> C8 [label="I13 status webhook", fontcolor="#B3261E", style=dashed];
+  G3 -> E3 [label="I15 SQL/TLS (all)", ltail=cluster_g];
+  G1 -> C3 [label="I18 verifyToken()", fontcolor="#B3261E", style=dotted, constraint=false];
+}

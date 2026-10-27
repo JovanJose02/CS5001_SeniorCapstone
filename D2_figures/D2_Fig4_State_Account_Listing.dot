@@ -1,0 +1,34 @@
+digraph D2_Fig4_State_Account_Listing {
+  graph [fontname="Inter", rankdir=TB, labelloc=t, labeljust=l, nodesep=0.3, ranksep=0.5, pad=0.2, label=<<TABLE BORDER="0" CELLPADDING="1" CELLSPACING="0"><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="14"><B>Verified Student Sublease Marketplace</B></FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12.5"><B>D2 Figure 4: state machines for Account (C2) and Listing (C3)</B></FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Goal: Let UC students fill or find term-length subleases safely by limiting the marketplace to<BR ALIGN="LEFT"/>verified @mail.uc.edu students, matching listings to exact co-op dates, holding discriminatory<BR ALIGN="LEFT"/>listings for review, and giving property managers an approve/reject step before move-in.<BR ALIGN="LEFT"/></FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="10" COLOR="#444444"><B>Conventions: </B>Rounded box = state stored in the named column. Filled dot = initial state; ringed dot = final state. Arrow =<BR ALIGN="LEFT"/>transition, labelled event [guard] / action. Red arrow or note = error outcome: the request is refused with the<BR ALIGN="LEFT"/>named code and the state does not change. Every transition commits in one SQL transaction with its outbox or<BR ALIGN="LEFT"/>audit row.<BR ALIGN="LEFT"/></FONT></TD></TR><TR><TD> </TD></TR></TABLE>> ];
+  node [fontname="Inter", fontsize=11];
+  edge [fontname="Inter", fontsize=10, color="#333333"];
+  node [shape=box, style="rounded,filled", fillcolor="#DCE6F5", color="#3B5B92", fontsize=12];
+  subgraph cluster_a { label="Account.status (C2)"; style=rounded; color="#999999"; fontsize=12;
+    a0 [shape=circle, label="", width=0.2, style=filled, fillcolor=black];
+    UNV [label="UNVERIFIED\n(seeded manager or\nreviewer only)"]; PEN [label="PENDING"]; VER [label="VERIFIED\nverified_at set"];
+    a0 -> UNV [label="team seeds account"];
+    a0 -> PEN [label="first link request\n[@mail.uc.edu] / create row,\nLoginLink, enqueue LOGIN_LINK"];
+    UNV -> PEN [label="link request\n/ LoginLink, enqueue"];
+    PEN -> PEN [label="link request [< 3 in 60 min]\n/ supersede old links"];
+    PEN -> VER [label="confirm [token unused,\nnow < expires_at]\n/ used_at, issue JWT, audit"];
+    VER -> VER [label="confirm re-verification link\n/ verified_at = now"];
+    e1 [shape=note, style=filled, fillcolor="#FDECEA", color="#B3261E", fontcolor="#B3261E", label="Refused, no change:\n410 EXPIRED (expired or superseded)\n400 INVALID_TOKEN (unknown, used)\n429 RATE_LIMITED (4th request/hour)\n422 NOT_ELIGIBLE / EMAIL_UNDELIVERABLE"];
+    PEN -> e1 [color="#B3261E", style=dashed, arrowhead=none];
+    stale [shape=note, style=filled, fillcolor="#FDECEA", color="#B3261E", fontcolor="#B3261E", label="Derived, not stored: STUDENT with\nverified_at + 12 months <= now\n-> G1 returns 403 VERIFICATION_REQUIRED"];
+    VER -> stale [color="#B3261E", style=dashed, arrowhead=none];
+  }
+  subgraph cluster_l { label="Listing.status (C3, refines D1 Algorithm B)"; style=rounded; color="#999999"; fontsize=12;
+    l0 [shape=circle, label="", width=0.2, style=filled, fillcolor=black];
+    PUB [label="PUBLISHED", fillcolor="#E6F2E6", color="#2E7D32"]; HELD [label="HELD_FOR_REVIEW", fillcolor="#FFF6DC", color="#8A6D00"]; REJ [label="REJECTED", fillcolor="#EEEEEE", color="#666666"];
+    lend [shape=doublecircle, label="", width=0.15, style=filled, fillcolor=black];
+    l0 -> PUB [label="submit [valid, C4 clean]\n/ version=1, 3 outbox rows\n(C5, C6, C7)"];
+    l0 -> HELD [label="submit [valid, C4 flagged\nor C4 unavailable]\n/ flagged_phrases, no outbox"];
+    HELD -> PUB [label="review RELEASE [REVIEWER]\n/ version+1, 3 outbox rows, audit"];
+    HELD -> REJ [label="review REJECT [REVIEWER]\n/ review_note, audit"];
+    REJ -> lend;
+    e2 [shape=note, style=filled, fillcolor="#FDECEA", color="#B3261E", fontcolor="#B3261E", label="Refused, no row or change:\n400 INVALID_INPUT, 409 DUPLICATE_LISTING\n409 NOT_HELD_FOR_REVIEW (review of\nPUBLISHED or REJECTED), 503 on DB loss"];
+    PUB -> e2 [color="#B3261E", style=dashed, arrowhead=none];
+    gap [shape=note, style=filled, fillcolor="#FFFFFF", color="#777777", label="No exit from PUBLISHED in D2:\nno user story asks for withdraw\nor filled (open question GQ-03)."];
+    PUB -> gap [style=dotted, arrowhead=none];
+  }
+}

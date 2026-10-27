@@ -1,0 +1,32 @@
+digraph D2_Fig6_State_Notification_Outbox {
+  graph [fontname="Inter", rankdir=TB, labelloc=t, labeljust=l, nodesep=0.3, ranksep=0.5, pad=0.2, label=<<TABLE BORDER="0" CELLPADDING="1" CELLSPACING="0"><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="14"><B>Verified Student Sublease Marketplace</B></FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12.5"><B>D2 Figure 6: state machines for Notification (C8) and ListingEvent outbox rows (C3)</B></FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Goal: Let UC students fill or find term-length subleases safely by limiting the marketplace to<BR ALIGN="LEFT"/>verified @mail.uc.edu students, matching listings to exact co-op dates, holding discriminatory<BR ALIGN="LEFT"/>listings for review, and giving property managers an approve/reject step before move-in.<BR ALIGN="LEFT"/></FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="10" COLOR="#444444"><B>Conventions: </B>Rounded box = state stored in the named column. Filled dot = initial state; ringed dot = final state. Arrow =<BR ALIGN="LEFT"/>transition, labelled event [guard] / action. Red arrow or note = error outcome: the request is refused with the<BR ALIGN="LEFT"/>named code and the state does not change. Every transition commits in one SQL transaction with its outbox or<BR ALIGN="LEFT"/>audit row.<BR ALIGN="LEFT"/></FONT></TD></TR><TR><TD> </TD></TR></TABLE>> ];
+  node [fontname="Inter", fontsize=11];
+  edge [fontname="Inter", fontsize=10, color="#333333"];
+  node [shape=box, style="rounded,filled", fillcolor="#DCE6F5", color="#3B5B92", fontsize=12];
+  subgraph cluster_n { label="Notification.status (C8)"; style=rounded; color="#999999"; fontsize=12;
+    n0 [shape=circle, label="", width=0.2, style=filled, fillcolor=black];
+    Q [label="QUEUED"]; SD [label="SENDING\nattempts+1"]; ST [label="SENT"]; DL [label="DELIVERED", fillcolor="#E6F2E6", color="#2E7D32"];
+    BO [label="BOUNCED", fillcolor="#FDECEA", color="#B3261E"]; FA [label="FAILED", fillcolor="#FDECEA", color="#B3261E"]; SU [label="SUPPRESSED", fillcolor="#EEEEEE", color="#666666"];
+    n0 -> Q [label="enqueue() [recipient ok]"];
+    n0 -> SU [label="enqueue() [email suppressed\nor user unknown]"];
+    Q -> SD [label="worker claims\n(SKIP LOCKED, every 5 s)"];
+    SD -> ST [label="E1 2xx accepted\n/ provider_msg_id"];
+    SD -> Q [color="#B3261E", fontcolor="#B3261E", label="5xx, 429, timeout 5 s\n[attempts < 4] / next_attempt\n+30 s, +60 s, +120 s"];
+    SD -> FA [color="#B3261E", fontcolor="#B3261E", label="4xx, or attempts = 4\n/ ERROR log"];
+    SD -> Q [color="#B3261E", fontcolor="#B3261E", style=dashed, label="reaper: SENDING > 2 min\n(crash after send)"];
+    ST -> DL [label="webhook DELIVERED"];
+    ST -> BO [color="#B3261E", fontcolor="#B3261E", label="webhook BOUNCED\n/ add Suppression"];
+    DL -> BO [color="#B3261E", fontcolor="#B3261E", label="late bounce"];
+    FA -> Q [style=dashed, label="manual re-drive\n/ audit"];
+  }
+  subgraph cluster_o { label="ListingEvent outbox row (C3, one row per consumer C5, C6, C7)"; style=rounded; color="#999999"; fontsize=12;
+    o0 [shape=circle, label="", width=0.2, style=filled, fillcolor=black];
+    OP [label="PENDING\ndispatched_at = null"]; OD [label="DISPATCHED\ndispatched_at set", fillcolor="#E6F2E6", color="#2E7D32"];
+    OF [label="FAILED", fillcolor="#FDECEA", color="#B3261E"];
+    o0 -> OP [label="written in the same TX\nas the listing change"];
+    OP -> OD [label="relay (every 5 s) calls\nconsumer handler, ack"];
+    OP -> OP [color="#B3261E", fontcolor="#B3261E", label="handler throws [attempts < 4]\n/ next_attempt +5 s, +30 s, +2 min"];
+    OP -> OF [color="#B3261E", fontcolor="#B3261E", label="4th failure / ERROR log"];
+    OF -> OP [style=dashed, label="redrive script / audit"];
+  }
+}

@@ -1,0 +1,48 @@
+digraph D2_Fig8_Error_Paths_SignIn {
+  graph [fontname="Inter", rankdir=TB, labelloc=t, labeljust=l, nodesep=0.3, ranksep=0.5, pad=0.2, label=<<TABLE BORDER="0" CELLPADDING="1" CELLSPACING="0"><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="14"><B>Verified Student Sublease Marketplace</B></FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12.5"><B>D2 Figure 8: error paths in sign-in and verification (US-01, UC-01 steps 2 to 6, AC-01.2)</B></FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Goal: Let UC students fill or find term-length subleases safely by limiting the marketplace to<BR ALIGN="LEFT"/>verified @mail.uc.edu students, matching listings to exact co-op dates, holding discriminatory<BR ALIGN="LEFT"/>listings for review, and giving property managers an approve/reject step before move-in.<BR ALIGN="LEFT"/></FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="10" COLOR="#444444"><B>Conventions: </B>Rounded box = processing step (owning component in brackets). Diamond = decision. Black arrows = happy path. Red<BR ALIGN="LEFT"/>arrows and red boxes = error paths, each ending in the stated outcome; R = recoverable (user or system can<BR ALIGN="LEFT"/>retry), N = not recoverable without a person. Dashed arrow = asynchronous hand-off through an outbox or queue<BR ALIGN="LEFT"/>row. Codes are HTTP status + error code.<BR ALIGN="LEFT"/></FONT></TD></TR><TR><TD> </TD></TR></TABLE>> , nodesep=0.35, ranksep=0.35];
+  node [fontname="Inter", fontsize=11];
+  edge [fontname="Inter", fontsize=10, color="#333333"];
+  node [shape=box, style="rounded,filled", fillcolor="#DCE6F5", color="#3B5B92", fontsize=11];
+  start [shape=circle, label="", width=0.2, style=filled, fillcolor=black];
+  a1 [label="POST /api/v1/auth/link-requests {email}\n[C1 -> C2, I2]"];
+  a2 [label="trim, lowercase, NFKC\n[C2]"];
+  d1 [shape=diamond, style=filled, fillcolor="#FFF6DC", color="#8A6D00", label="@mail.uc.edu exact,\nor seeded account?", fontsize=10];
+  x1 [shape=box, style="rounded,filled", fillcolor="#FDECEA", color="#B3261E", fontcolor="#B3261E", label="422 NOT_ELIGIBLE, R", fontsize=10];
+  d2 [shape=diamond, style=filled, fillcolor="#FFF6DC", color="#8A6D00", label="< 3 links in\nlast 60 min?", fontsize=10];
+  x2 [shape=box, style="rounded,filled", fillcolor="#FDECEA", color="#B3261E", fontcolor="#B3261E", label="429 RATE_LIMITED\nRetry-After, R", fontsize=10];
+  a3 [label="BEGIN TX: upsert Account,\nsupersede unused links, insert LoginLink\n(store SHA-256 of 32-byte token)"];
+  a4 [label="enqueue LOGIN_LINK\n[C8, I10, same TX]"];
+  d3 [shape=diamond, style=filled, fillcolor="#FFF6DC", color="#8A6D00", label="enqueue\nstate?", fontsize=10];
+  x3 [shape=box, style="rounded,filled", fillcolor="#FDECEA", color="#B3261E", fontcolor="#B3261E", label="422 EMAIL_UNDELIVERABLE\nTX rolled back, N", fontsize=10];
+  x4 [shape=box, style="rounded,filled", fillcolor="#FDECEA", color="#B3261E", fontcolor="#B3261E", label="503 NOTIFY_UNAVAILABLE\nTX rolled back, not PENDING, R", fontsize=10];
+  r1 [shape=box, style="rounded,filled", fillcolor="#E6F2E6", color="#2E7D32", label="202 {status: PENDING}", fontsize=10];
+  a5 [label="student opens emailed link\nGET /verify#token (C1 page only;\nGET never consumes the token)"];
+  a6 [label="student presses Confirm\nPOST /api/v1/auth/link-confirmations"];
+  d4 [shape=diamond, style=filled, fillcolor="#FFF6DC", color="#8A6D00", label="token hash\nfound?", fontsize=10];
+  x5 [shape=box, style="rounded,filled", fillcolor="#FDECEA", color="#B3261E", fontcolor="#B3261E", label="400 INVALID_TOKEN, R (new link)", fontsize=10];
+  d5 [shape=diamond, style=filled, fillcolor="#FFF6DC", color="#8A6D00", label="now < expires_at,\nnot superseded?", fontsize=10];
+  x6 [shape=box, style="rounded,filled", fillcolor="#FDECEA", color="#B3261E", fontcolor="#B3261E", label="410 EXPIRED, stays PENDING\nC1 offers new link (AC-01.2), R", fontsize=10];
+  d6 [shape=diamond, style=filled, fillcolor="#FFF6DC", color="#8A6D00", label="UPDATE used_at\nWHERE used_at IS NULL\n1 row?", fontsize=10];
+  x7 [shape=box, style="rounded,filled", fillcolor="#FDECEA", color="#B3261E", fontcolor="#B3261E", label="400 INVALID_TOKEN (double click)\nC1 continues if it holds a session, R", fontsize=10];
+  r2 [shape=box, style="rounded,filled", fillcolor="#E6F2E6", color="#2E7D32", label="VERIFIED, verified_at = now,\naudit; 200 {sessionToken,\nexpiresAt = +24 h}", fontsize=10];
+  start -> a1 -> a2 -> d1;
+  d1 -> x1 [color="#B3261E", fontcolor="#B3261E", label="no"];
+  d1 -> d2 [label="yes"];
+  d2 -> x2 [color="#B3261E", fontcolor="#B3261E", label="no"];
+  d2 -> a3 [label="yes"]; a3 -> a4 -> d3;
+  d3 -> x3 [color="#B3261E", fontcolor="#B3261E", label="SUPPRESSED"];
+  d3 -> x4 [color="#B3261E", fontcolor="#B3261E", label="throws"];
+  d3 -> r1 [label="QUEUED"];
+  r1 -> a5 [style=dashed, label="email via C8, E1, E2", constraint=false]; a5 -> a6 -> d4;
+  d4 -> x5 [color="#B3261E", fontcolor="#B3261E", label="no"];
+  d4 -> d5 [label="yes"];
+  d5 -> x6 [color="#B3261E", fontcolor="#B3261E", label="no"];
+  d5 -> d6 [label="yes"];
+  d6 -> x7 [color="#B3261E", fontcolor="#B3261E", label="0 rows"];
+  d6 -> r2 [label="1 row"];
+  {rank=same; d1; x1}
+  {rank=same; d2; x2}
+  {rank=same; d4; x5}
+  {rank=same; d5; x6}
+  {rank=same; d6; x7}
+}

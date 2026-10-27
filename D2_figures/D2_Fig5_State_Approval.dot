@@ -1,0 +1,21 @@
+digraph D2_Fig5_State_Approval {
+  graph [fontname="Inter", rankdir=TB, labelloc=t, labeljust=l, nodesep=0.3, ranksep=0.5, pad=0.2, label=<<TABLE BORDER="0" CELLPADDING="1" CELLSPACING="0"><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="14"><B>Verified Student Sublease Marketplace</B></FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12.5"><B>D2 Figure 5: state machine for ApprovalRequest (C7, US-03, UC-02)</B></FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Goal: Let UC students fill or find term-length subleases safely by limiting the marketplace to<BR ALIGN="LEFT"/>verified @mail.uc.edu students, matching listings to exact co-op dates, holding discriminatory<BR ALIGN="LEFT"/>listings for review, and giving property managers an approve/reject step before move-in.<BR ALIGN="LEFT"/></FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="10" COLOR="#444444"><B>Conventions: </B>Rounded box = state stored in the named column. Filled dot = initial state; ringed dot = final state. Arrow =<BR ALIGN="LEFT"/>transition, labelled event [guard] / action. Red arrow or note = error outcome: the request is refused with the<BR ALIGN="LEFT"/>named code and the state does not change. Every transition commits in one SQL transaction with its outbox or<BR ALIGN="LEFT"/>audit row.<BR ALIGN="LEFT"/></FONT></TD></TR><TR><TD> </TD></TR></TABLE>> ];
+  node [fontname="Inter", fontsize=11];
+  edge [fontname="Inter", fontsize=10, color="#333333"];
+  node [shape=box, style="rounded,filled", fillcolor="#DCE6F5", color="#3B5B92", fontsize=12];
+  init [shape=circle, label="", width=0.2, style=filled, fillcolor=black];
+  PENDING [label="PENDING\nreminder_sent_at = null"]; PENDR [label="PENDING\nreminder_sent_at set"];
+  APP [label="APPROVED\ndecided_at set", fillcolor="#E6F2E6", color="#2E7D32"]; REJ [label="REJECTED\ndecided_at, reason", fillcolor="#EEEEEE", color="#666666"];
+  fin [shape=doublecircle, label="", width=0.15, style=filled, fillcolor=black];
+  init -> PENDING [label="proposal [caller owns listing,\nsublessee verified (I17b), unit REGISTERED,\nno PENDING/APPROVED for listing]\n/ enqueue SUBLEASE_PROPOSED to manager"];
+  PENDING -> PENDR [label="daily job [>= 5 business days,\nstatus PENDING] / conditional UPDATE\nreminder_sent_at, enqueue REMINDER (AC-02.2)"];
+  PENDING -> APP [label="APPROVE [caller = unit manager]\n/ decided_at, enqueue DECISION x2, audit"];
+  PENDR -> APP [label="APPROVE"];
+  PENDING -> REJ [label="REJECT [reason 1..500]\n/ same actions"];
+  PENDR -> REJ [label="REJECT"];
+  APP -> fin; REJ -> fin;
+  err [shape=note, style=filled, fillcolor="#FDECEA", color="#B3261E", fontcolor="#B3261E", label="Refused, no change:\n409 ALREADY_DECIDED (decision on APPROVED/REJECTED)\n409 PENDING_EXISTS / ALREADY_APPROVED (proposal)\n422 SUBLESSEE_NOT_VERIFIED, SELF_PROPOSAL, UNIT_NOT_REGISTERED\n403 NOT_LISTING_OWNER / NOT_UNIT_MANAGER\n503 if enqueue or I17b fails (whole TX rolled back)"];
+  APP -> err [color="#B3261E", style=dashed, arrowhead=none]; REJ -> err [color="#B3261E", style=dashed, arrowhead=none];
+  rem [shape=note, style=filled, fillcolor="#FFFFFF", color="#777777", label="No PENDR -> PENDR edge: the guard\nreminder_sent_at IS NULL makes a 2nd\nreminder impossible, even if the job\nruns twice (advisory lock + guard)."];
+  PENDR -> rem [style=dotted, arrowhead=none];
+}
