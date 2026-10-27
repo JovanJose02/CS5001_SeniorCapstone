@@ -1,0 +1,35 @@
+ID,Statement,Owner,Start,Finish,Dependencies,PERT hours,Buffer hours (20%),Float (work days),Critical,Risks
+T1,"Develop the project skeleton, the CI pipeline, the G2 Configuration module, and the E3 database schema migrations.",Jovan Jose Asker Fredy,2026-11-02,2026-11-11,,12.3,2.5,0,True,RK4
+T2,"Research and obtain the E1 Email Delivery API account, and confirm its free-tier limit, webhook signing, and idempotency keys.",Danvanth Vanganuri,2026-11-02,2026-11-06,,5.5,1.1,3,False,RK1 RK5
+T3,Design the C1 Web Client wireframes and the accessibility checklist for every user story screen.,Mohamed Aidja,2026-11-02,2026-11-11,,10.3,2.1,0,False,RK10
+T4,"Specify the C4 Compliance Screener phrase list v1, including the Ohio R.C. 4112 protected classes.",Jovan Jose Asker Fredy,2026-11-16,2026-11-20,,8.3,1.7,6,False,RK7
+T5,"Develop the G3 Logging and audit module (log, audit record, and the /healthz check).",Mohamed Aidja,2026-11-16,2026-11-20,T1,8.0,1.6,6,False,
+T6,Develop the G1 Authentication middleware and the signed session token.,Danvanth Vanganuri,2026-11-16,2026-12-02,T1,10.3,2.1,0,True,RK3
+T7,"Develop the C2 Identity Service for @mail.uc.edu login links, the 24-hour link expiry, and rate limits (I2, I10).",Danvanth Vanganuri,2027-01-11,2027-01-22,T2 T6,19.0,3.8,0,True,RK1 RK2
+T8,Develop the C4 Compliance Screener screen() function (I7) with unit tests for every phrase category.,Jovan Jose Asker Fredy,2027-01-11,2027-01-15,T1 T4,10.7,2.1,0,False,RK7
+T12,"Develop the C1 Web Client screens for sign-in, create listing, and search (I1 to I4).",Mohamed Aidja,2027-01-11,2027-01-22,T3 T6,21.0,4.2,8,False,RK8 RK10
+T9,"Develop the C3 Listing Service create, validate, hold, publish, and review endpoints (I3).",Jovan Jose Asker Fredy,2027-01-19,2027-01-29,T6 T8,20.7,4.1,3,False,
+T11,"Develop the C8 Notification Service queue, the E1 send with retries, the status webhook, and the suppression list (I10 to I13).",Danvanth Vanganuri,2027-01-25,2027-02-03,T2 T7,18.3,3.7,0,True,RK1 RK5
+T13,"Develop the C6 Messaging Service threads, messages, and alert limits (I5, I11).",Mohamed Aidja,2027-01-25,2027-02-03,T5 T6,16.7,3.3,0,False,
+T10,"Develop the C3 outbox relay and the C5 Search & Match index and date-coverage search (I8, I4).",Jovan Jose Asker Fredy,2027-02-08,2027-02-19,T9,21.0,4.2,2,False,RK4
+T14,"Develop the C7 Approval Service proposals, decisions, unit registry seed, and daily reminder job (I6, I9, I12).",Danvanth Vanganuri,2027-02-08,2027-02-23,T9 T11,20.7,4.1,0,True,RK6
+T15,"Develop the C1 Web Client screens for messages, approval requests, and the review queue (I5, I6).",Mohamed Aidja,2027-02-08,2027-02-23,T12 T13,19.0,3.8,0,False,RK8
+T16,"Test the timing budgets and error paths for AC-01.1, AC-02.1, and AC-02.2 with automated end-to-end tests.",Danvanth Vanganuri,2027-03-01,2027-03-10,T10 T11 T14,14.7,2.9,0,True,RK3 RK4
+T17,Validate US-04 accessibility with axe-core in CI and a manual NVDA and VoiceOver pass.,Mohamed Aidja,2027-03-01,2027-03-10,T12 T15,10.7,2.1,0,False,RK10
+T18,"Validate the release candidate with a five-student user test, and document the results and the user guide.",Jovan Jose Asker Fredy,2027-03-22,2027-04-02,M8,14.3,2.9,0,True,RK6 RK7
+M0a,Project description and Week 3 constraints,,,Week 3 (Sep 2026),,,,,,
+M0b,"User Stories (US-01 to US-05, UC-01, UC-02, AC-01.1 to AC-02.2)",,,Week 5 (Sep 2026),,,,,,
+M0c,Design D0: High-Level Design,,,"Oct 2, 2026",,,,,,
+M0d,Design D1: Detailed Design of C3 and C5,,,Week 7 (Oct 2026),,,,,,
+M0e,Design D2 and peer review (consolidated Assignment #4 PDF),,,"Oct 14, 2026",,,,,,
+M1,"Assignment 8: Task list, milestones, timeline, effort matrix",,,2026-10-28,,,,,,
+M2,Development environment ready,,,2026-11-13,,,,,,
+M3,Week 14 report (reproduces these tables),,,2026-11-25,,,,,,
+M4,Phase 1 done: sign-in base and screening rules,,,2026-12-04,,,,,,
+M5,Spring re-kickoff and re-baseline,,,2027-01-15,,,,,,
+M6,Walking skeleton,,,2027-02-05,,,,,,
+M7,Core flows work end to end,,,2027-02-26,,,,,,
+M8,Feature complete,,,2027-03-12,,,,,,
+M9,User test sessions done,,,2027-03-26,,,,,,
+M10,Release candidate v1.0,,,2027-04-09,,,,,,
+M11,Final demo (CS 5002 expo),,,2027-04-16,,,,,,

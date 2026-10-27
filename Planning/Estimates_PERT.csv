@@ -1,0 +1,19 @@
+ID,Owner,Optimistic,Most likely,Pessimistic,Expected (O+4M+P)/6
+T1,Jovan Jose Asker Fredy,6,12,20,12.3
+T2,Danvanth Vanganuri,3,5,10,5.5
+T3,Mohamed Aidja,6,10,16,10.3
+T4,Jovan Jose Asker Fredy,4,8,14,8.3
+T5,Mohamed Aidja,4,8,12,8.0
+T6,Danvanth Vanganuri,6,10,16,10.3
+T7,Danvanth Vanganuri,12,18,30,19.0
+T8,Jovan Jose Asker Fredy,6,10,18,10.7
+T9,Jovan Jose Asker Fredy,12,20,32,20.7
+T10,Jovan Jose Asker Fredy,14,20,32,21.0
+T11,Danvanth Vanganuri,10,18,28,18.3
+T12,Mohamed Aidja,12,20,34,21.0
+T13,Mohamed Aidja,10,16,26,16.7
+T14,Danvanth Vanganuri,12,20,32,20.7
+T15,Mohamed Aidja,12,18,30,19.0
+T16,Danvanth Vanganuri,8,14,24,14.7
+T17,Mohamed Aidja,6,10,18,10.7
+T18,Jovan Jose Asker Fredy,8,14,22,14.3
