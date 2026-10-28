@@ -1,0 +1,1081 @@
+<!doctype html><html><head><meta charset='utf-8'><title>Technical Specification</title><style>
+@page { size: Letter; margin: 15mm 12mm 14mm 12mm;
+  @top-left { content: "Technical Specification | Verified Student Sublease Marketplace"; font: 7pt 'Helvetica Neue', Arial, sans-serif; color: #555; }
+  @bottom-right { content: "page " counter(page) " of " counter(pages); font: 7pt 'Helvetica Neue', Arial, sans-serif; color: #555; } }
+body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 9.2pt; line-height: 1.36; color: #111; }
+h1 { font-size: 19pt; margin: 0 0 6px 0; }
+h2 { font-size: 13pt; margin: 16px 0 5px 0; border-bottom: 1px solid #bbb; padding-bottom: 2px; break-after: avoid; }
+h3 { font-size: 10.6pt; margin: 11px 0 4px 0; break-after: avoid; }
+p { margin: 3px 0 6px 0; }
+hr { border: 0; border-top: 1px solid #ccc; margin: 8px 0; }
+table { border-collapse: collapse; width: 100%; margin: 5px 0 9px 0; font-size: 7.7pt; line-height: 1.28; }
+th { background: #E9EEF5; text-align: left; }
+th, td { border: 1px solid #9aa; padding: 2px 4px; vertical-align: top; }
+tr { break-inside: avoid; }
+thead { display: table-header-group; }
+code { font-family: Menlo, monospace; font-size: 0.86em; background: #F1F1F1; padding: 0 2px; }
+pre { background: #F6F6F6; border: 1px solid #ddd; padding: 5px; font-size: 7.2pt; white-space: pre-wrap; break-inside: avoid; }
+pre code { background: none; }
+ul { margin: 3px 0 6px 18px; padding: 0; }
+a { color: #1a4f9c; text-decoration: none; }
+</style></head><body><h1>Technical Specification</h1>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Project</td>
+<td>Roost, a verified student sublease marketplace for UC</td>
+</tr>
+<tr>
+<td>Course</td>
+<td>CS5001 Senior Design I, Assignment 9 (Week 9)</td>
+</tr>
+<tr>
+<td>Team members</td>
+<td>Danvanth Vanganuri, Jovan Jose Asker Fredy, Mohamed Aidja</td>
+</tr>
+<tr>
+<td>Document version</td>
+<td>2.0 (2026-10-28)</td>
+</tr>
+<tr>
+<td>Traces to</td>
+<td><a href="Requirements_Document.md">Requirements_Document.md</a> <strong>v2.0 (2026-10-28)</strong>. All REQ, NFR, CON and glossary terms have the meanings given there.</td>
+</tr>
+<tr>
+<td>Describes</td>
+<td>the Roost prototype, <a href="https://github.com/trivinity/roost-uc-sublease">roost-uc-sublease</a> commit <code>71d351b</code> (2026-10-26), plus the designed-but-unbuilt items marked <strong>Designed</strong>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>1. Version and Change Log</h2>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Date</th>
+<th>Change</th>
+<th>Author</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.0</td>
+<td>2026-10-28</td>
+<td>First issue, consolidated from D0, D1 and D2 against RD v1.0 (Node/Express backend, outbox, Render). Not submitted.</td>
+<td>Jovan Jose Asker Fredy</td>
+</tr>
+<tr>
+<td>2.0</td>
+<td>2026-10-28</td>
+<td>Rewritten to describe the prototype that the team built and the advisor reviewed: Next.js on Vercel, Supabase (Auth, Postgres with RLS, Realtime, Storage, pg_cron), an Expo phone app. Traces to RD v2.0. The D0 to D2 components are mapped to the prototype in §2.1. Fair Housing screening is re-hosted from the C4 module to a database trigger (§3.6). All design changes since the Week 7 review are logged in §7.</td>
+<td>Jovan Jose Asker Fredy</td>
+</tr>
+<tr>
+<td>2.1</td>
+<td><em>pending</em></td>
+<td>Edits from the advisor review of these drafts (§8).</td>
+<td><em>TBD</em></td>
+</tr>
+</tbody>
+</table>
+<h2>2. Architecture Summary</h2>
+<p>Roost is a <strong>client-server web application on a backend-as-a-service</strong>. There is no custom application server. Components:</p>
+<ul>
+<li><strong>Web client:</strong> Next.js 16 (App Router, React 19, TypeScript, Tailwind), hosted on <strong>Vercel</strong>. It talks directly to <strong>Supabase</strong> with the public publishable key and the user's session token.</li>
+<li><strong>Supabase</strong> holds all state and enforces all rules inside the database:<ul>
+<li><strong>Auth</strong>: emailed sign-in links, and a trigger that rejects non-UC addresses.</li>
+<li><strong>Postgres</strong>: 8 tables, each with <strong>row-level security</strong>, plus triggers that fill in names, cap listings and block self-messaging.</li>
+<li><strong>Realtime</strong>: chat delivery.</li>
+<li><strong>Storage</strong>: the <code>listing-photos</code> bucket.</li>
+<li><strong>pg_cron</strong>: the nightly 30-day chat deletion.</li>
+</ul>
+</li>
+<li><strong>Three Next.js API routes</strong> run on Vercel serverless functions. They keep third-party keys and rate limits off the client: <code>/api/geocode</code> calls OpenStreetMap Nominatim; <code>/api/places/search</code> and <code>/api/places/rating</code> call Google Places API (New).</li>
+<li><strong>Phone app:</strong> an Expo / React Native app that shares the web app's logic through a sync script. It still runs on local demo data; moving it onto Supabase is T20.</li>
+</ul>
+<p><strong>Deployment model.</strong> There is one Vercel project (root <code>uc-sublease/</code>, live at https://roost-uc-sublease.vercel.app) and one Supabase project (<code>roost-uc-sublease</code>, us-east-2, Free plan, Pro before launch). Schema changes are SQL migrations <code>001</code> to <code>007</code>, applied in order. Secrets live only in Vercel and Supabase settings (<code>GOOGLE_PLACES_API_KEY</code>, SMTP credentials); the shipped JavaScript carries only the publishable key.</p>
+<p><strong>Data flow.</strong></p>
+<ul>
+<li>Sign-in: the browser asks Supabase Auth to email a link. The <code>handle_new_user</code> trigger rejects non-UC addresses before any email is sent and creates the profile. The link returns a JWT session.</li>
+<li>Reads and writes go from the browser to Supabase (PostgREST over HTTPS, with the JWT). RLS decides which rows each user sees; BEFORE INSERT triggers set server-owned fields.</li>
+<li>Posting: the address goes through <code>/api/geocode</code> to coordinates. Photos are compressed in the browser and uploaded to the host's own Storage folder. Then the listing row is inserted.</li>
+<li>Search, ranking and filtering run in the browser over the active listings RLS returns (no server search index at campus scale, A-01).</li>
+<li>Chat: rows are inserted into <code>threads</code> and <code>messages</code>, and Realtime pushes them to the other participant. <code>share_contact</code> and <code>get_contact</code> (SECURITY DEFINER functions) control email disclosure.</li>
+</ul>
+<p><strong>Diagrams.</strong> The prototype has no new diagrams. The D0 to D2 figures stay valid for the parts mapped below; they are linked, not duplicated: <a href="D0_High_Level_Design.pdf">D0_High_Level_Design.pdf</a> (block diagram, Data Flows 1 to 4), <a href="D1_Detailed_Design.pdf">D1_Detailed_Design.pdf</a>, <a href="D2_Detailed_Design.pdf">D2_Detailed_Design.pdf</a> and <a href="D2_figures/">D2_figures/</a>.</p>
+<h3>2.1 Design components mapped to the prototype</h3>
+<table>
+<thead>
+<tr>
+<th>D0/D2 element</th>
+<th>In the prototype</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C1 Web Client</td>
+<td>Next.js app <code>uc-sublease/app/*</code> + Expo app <code>roost-mobile/</code></td>
+<td>Built (web); phone on local data</td>
+</tr>
+<tr>
+<td>C2 Identity, G1 Auth</td>
+<td>Supabase Auth email link; <code>handle_new_user</code> trigger; <code>email_allowlist</code>; JWT checked by PostgREST and <code>requireUser()</code></td>
+<td>Built</td>
+</tr>
+<tr>
+<td>C3 Listing</td>
+<td><code>listings</code> table, RLS, <code>listings_before_insert</code> trigger; statuses active, rented, removed</td>
+<td>Built (no hold state yet)</td>
+</tr>
+<tr>
+<td>C4 Compliance Screener</td>
+<td>D2 Algorithm D re-hosted as a database trigger (§3.6)</td>
+<td>Designed, not built</td>
+</tr>
+<tr>
+<td>C5 Search &amp; Match</td>
+<td><code>filterListings()</code> and <code>rankByFit()</code> in the browser (D1 GiST index not used)</td>
+<td>Built</td>
+</tr>
+<tr>
+<td>C6 Messaging</td>
+<td><code>threads</code>, <code>messages</code>, Realtime, <code>share_contact</code>, <code>get_contact</code>, <code>mark_thread_read</code></td>
+<td>Built</td>
+</tr>
+<tr>
+<td>C7 Approval</td>
+<td>Withdrawn; replaced by <code>landlord_consent</code> CHECK and the fee split</td>
+<td>Withdrawn</td>
+</tr>
+<tr>
+<td>C8 Notification, E1</td>
+<td>Supabase Auth email only (custom SMTP pending, T19); no other email</td>
+<td>Partly built</td>
+</tr>
+<tr>
+<td>G2 Configuration</td>
+<td>Vercel/Supabase environment variables; <code>lib/config.ts</code>; migrations</td>
+<td>Built</td>
+</tr>
+<tr>
+<td>G3 Logging and audit</td>
+<td>Supabase and Vercel platform logs; <code>reports</code> table; no staff audit log yet (T23)</td>
+<td>Partly built</td>
+</tr>
+<tr>
+<td>E3 Managed SQL</td>
+<td>Supabase Postgres</td>
+<td>Built</td>
+</tr>
+<tr>
+<td>New: E4 Google Maps Platform, E5 OpenStreetMap</td>
+<td>Places API (New), Maps JS; Nominatim geocoding and Leaflet tiles</td>
+<td>Built</td>
+</tr>
+</tbody>
+</table>
+<h2>3. Interfaces and Data Formats</h2>
+<h3>3.1 Conventions</h3>
+<ul>
+<li><strong>Types:</strong> dates are ISO <code>yyyy-mm-dd</code>; timestamps are <code>timestamptz</code> (UTC); rent and fees are integer US dollars; user ids are UUIDs; listing ids are text (UUID strings).</li>
+<li><strong>Authentication:</strong> every Supabase call carries <code>Authorization: Bearer &lt;Supabase JWT&gt;</code> and <code>apikey: &lt;publishable key&gt;</code>. Calls to the three API routes carry the same Bearer token.</li>
+<li><strong>Supabase (PostgREST) error behavior:</strong><ul>
+<li>Invalid or expired JWT: <strong>401</strong>.</li>
+<li>An RLS-filtered SELECT returns <strong>200 with no rows</strong> (it never reveals that the row exists).</li>
+<li>An insert or update that RLS refuses: <strong>403</strong>, code <code>42501</code>.</li>
+<li>A CHECK violation: <strong>400</strong>, code <code>23514</code>.</li>
+<li>A unique violation: <strong>409</strong>, code <code>23505</code>.</li>
+<li>A trigger <code>raise exception</code>: <strong>400</strong>, code <code>P0001</code>, with its message.</li>
+<li>The client maps each case to one message from <code>lib/copy.ts</code>.</li>
+</ul>
+</li>
+<li><strong>API route errors:</strong> <code>{"error": "&lt;code&gt;"}</code>, where the code is one of <code>sign_in_required</code> (401), <code>bad_id</code> (400), <code>slow_down</code> (429), <code>not_found</code> (404), <code>lookup_failed</code> (502) or <code>not_configured</code> (503).</li>
+<li><strong>Security headers</strong> (<code>next.config.ts</code>): <code>X-Frame-Options: DENY</code>, <code>frame-ancestors 'none'</code>, <code>X-Content-Type-Options: nosniff</code>, a strict <code>Referrer-Policy</code>, a <code>Permissions-Policy</code> that disables camera, microphone, location and payments, and <code>Cross-Origin-Opener-Policy</code>.</li>
+</ul>
+<h3>3.2 Component boundaries</h3>
+<table>
+<thead>
+<tr>
+<th>Boundary</th>
+<th>Inputs → outputs</th>
+<th>Format</th>
+<th>Protocol</th>
+<th>Error behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>User ↔ web client (I1)</td>
+<td>Taps, swipes, keys, forms → pages, toasts, live counts</td>
+<td>HTML, ARIA</td>
+<td>HTTPS (browser)</td>
+<td>Field errors shown inline from <code>lib/copy.ts</code>; motion off under reduced-motion; draft kept on the post form</td>
+</tr>
+<tr>
+<td>Web client → Supabase Auth (I2)</td>
+<td><code>signInWithOtp({email})</code> (link); <code>signInWithPassword</code> (review account only) → session JWT</td>
+<td>JSON</td>
+<td>HTTPS</td>
+<td>Non-UC address: trigger error "Only UC email addresses…", no email sent. Expired or used link: no session. Rate limit: 429</td>
+</tr>
+<tr>
+<td>Web client ↔ Supabase DB (I3 to I6, I15)</td>
+<td>Table reads and writes, RPC → rows</td>
+<td>JSON</td>
+<td>PostgREST over HTTPS</td>
+<td>§3.1 codes; RLS hides others' rows; triggers override client-set names</td>
+</tr>
+<tr>
+<td>Web client ↔ Realtime</td>
+<td>Subscribe to <code>messages</code>, <code>threads</code> → inserted rows</td>
+<td>JSON</td>
+<td>WebSocket (TLS)</td>
+<td>Only rows the user may read are delivered; on reconnect the client re-fetches the thread</td>
+</tr>
+<tr>
+<td>Web client → Storage</td>
+<td><code>upload(&lt;uid&gt;/&lt;file&gt;)</code> JPEG/WebP/PNG ≤ 2 MB → public URL</td>
+<td>Binary</td>
+<td>HTTPS</td>
+<td>Another user's folder: 403; type or size refused: 400; the listing is saved without the failed photo</td>
+</tr>
+<tr>
+<td>Web client → <code>/api/*</code></td>
+<td>Query string + Bearer → JSON (§3.3)</td>
+<td>JSON</td>
+<td>HTTPS GET</td>
+<td>401, 400, 429 (per-user, in memory), 502 upstream, 503 key missing</td>
+</tr>
+<tr>
+<td><code>/api/*</code> → E4/E5</td>
+<td>Nominatim search; Places Text Search; Place Details (field mask)</td>
+<td>JSON</td>
+<td>HTTPS</td>
+<td>Upstream failure → <code>lookup_failed</code>; ratings never cached (<code>no-store</code>); geocode cached 24 h</td>
+</tr>
+<tr>
+<td>Supabase Auth → SMTP → UC Mail (I13, I14)</td>
+<td>Sign-in link email</td>
+<td>RFC 5322 MIME</td>
+<td>SMTP over TLS</td>
+<td>Built-in sender reaches only team members until custom SMTP (T19); bounces are visible in the SMTP provider</td>
+</tr>
+<tr>
+<td>pg_cron → DB</td>
+<td><code>roost-delete-old-chats</code> at 03:17 UTC</td>
+<td>SQL</td>
+<td>In-database</td>
+<td>A failed run is logged in <code>cron.job_run_details</code>; the next night catches up</td>
+</tr>
+<tr>
+<td>Phone app ↔ device store</td>
+<td>Listings, shortlist, chats (demo)</td>
+<td>JSON</td>
+<td>AsyncStorage</td>
+<td>Local only, to be replaced by the Supabase data layer (T20)</td>
+</tr>
+</tbody>
+</table>
+<h3>3.3 Endpoint table</h3>
+<p><strong>Next.js API routes</strong> (Vercel, Bearer token required):</p>
+<table>
+<thead>
+<tr>
+<th>Method and path</th>
+<th>Request</th>
+<th>Success</th>
+<th>Errors</th>
+<th>Limit</th>
+<th>Req</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET /api/geocode</td>
+<td><code>q</code> 4 to 120 chars</td>
+<td>200 <code>{results:[{label, area, lat, lng}]}</code> (at most 5; <code>[]</code> if q is short)</td>
+<td>401; 429; 200 with <code>error:"lookup_failed"</code></td>
+<td>30/min/user</td>
+<td>REQ-17, CON-09</td>
+</tr>
+<tr>
+<td>GET /api/places/search</td>
+<td><code>q</code> 3 to 80 chars</td>
+<td>200 <code>{results:[{id, name, address}]}</code></td>
+<td>401; 429; 502; 503</td>
+<td>20/min/user</td>
+<td>REQ-27</td>
+</tr>
+<tr>
+<td>GET /api/places/rating</td>
+<td><code>id</code> = Place ID <code>[A-Za-z0-9_-]{10,200}</code></td>
+<td>200 <code>{name, rating, count, url}</code></td>
+<td>400 bad_id; 401; 404; 429; 502; 503</td>
+<td>60/min/user</td>
+<td>REQ-27, CON-09</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Supabase data API</strong> (PostgREST <code>/rest/v1</code>, Bearer token required, RLS on every row):</p>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Who may</th>
+<th>Request / result</th>
+<th>Errors</th>
+<th>Req</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SELECT listings</td>
+<td>Signed in</td>
+<td>Active listings, plus the caller's own in any status</td>
+<td>401 (anon)</td>
+<td>REQ-03, REQ-07, REQ-10</td>
+</tr>
+<tr>
+<td>INSERT listings</td>
+<td>Owner = caller, not sample</td>
+<td>Listing row (§3.5) → row; trigger sets host_name and confirmed_at</td>
+<td>400 (23514 checks; P0001 "20 active listings"); 403</td>
+<td>REQ-04, REQ-06, REQ-20</td>
+</tr>
+<tr>
+<td>UPDATE / DELETE listings</td>
+<td>Owner</td>
+<td>status rented, confirmed_at, fields</td>
+<td>403</td>
+<td>REQ-10</td>
+</tr>
+<tr>
+<td>SELECT, UPDATE profiles</td>
+<td>Self only; columns display_name, prefs, prefs_asked, onboarded</td>
+<td>prefs JSON (§3.4)</td>
+<td>403 for other columns</td>
+<td>REQ-19, NFR-02</td>
+</tr>
+<tr>
+<td>SELECT, INSERT, DELETE shortlist</td>
+<td>Self</td>
+<td><code>{user_id, listing_id}</code></td>
+<td>409 duplicate</td>
+<td>REQ-24</td>
+</tr>
+<tr>
+<td>INSERT threads</td>
+<td>Seeker = caller</td>
+<td><code>{listing_id}</code> → thread; trigger sets host, names, shared flags</td>
+<td>P0001 "no longer available" / "your own listing"; 409 one thread per pair</td>
+<td>REQ-08</td>
+</tr>
+<tr>
+<td>SELECT, INSERT messages</td>
+<td>Thread participants; <code>kind='user'</code></td>
+<td><code>{thread_id, body 1-2000}</code></td>
+<td>403; 400</td>
+<td>REQ-08, REQ-22</td>
+</tr>
+<tr>
+<td>RPC share_contact(p_thread)</td>
+<td>Participant</td>
+<td>Sets the caller's shared flag and posts a system message</td>
+<td>"Chat not found."</td>
+<td>REQ-21</td>
+</tr>
+<tr>
+<td>RPC get_contact(p_thread)</td>
+<td>Participant</td>
+<td>The other person's email, or null until they share</td>
+<td>—</td>
+<td>REQ-21, NFR-02</td>
+</tr>
+<tr>
+<td>RPC mark_thread_read(p_thread)</td>
+<td>Participant</td>
+<td>Updates the caller's read_at</td>
+<td>—</td>
+<td>REQ-15</td>
+</tr>
+<tr>
+<td>INSERT, SELECT reports</td>
+<td>Reporter = caller</td>
+<td><code>{listing_id, reason 3-200}</code></td>
+<td>409 one per listing; 400</td>
+<td>REQ-23</td>
+</tr>
+<tr>
+<td>SELECT property_groups</td>
+<td>Signed in</td>
+<td>12 quick-pick companies <code>{name, kind, google_place_id}</code></td>
+<td>401</td>
+<td>REQ-27</td>
+</tr>
+<tr>
+<td>Storage <code>listing-photos</code></td>
+<td>Owner folder <code>&lt;uid&gt;/</code> write; public read</td>
+<td>JPEG/WebP/PNG ≤ 2 MB</td>
+<td>403; 400</td>
+<td>REQ-25</td>
+</tr>
+</tbody>
+</table>
+<h3>3.4 Data formats</h3>
+<pre><code class="language-jsonc">// profiles.prefs and listings.household (roommate ratings; household only on room listings)
+{ &quot;cleanliness&quot;: 4, &quot;noise&quot;: 2, &quot;social&quot;: 2, &quot;guests&quot;: 1, &quot;sleep&quot;: 3, &quot;approachability&quot;: 4,
+  &quot;smokeFree&quot;: true, &quot;cats&quot;: false, &quot;dogs&quot;: true }
+
+// Listing insert (client → PostgREST); server sets id, host_name, host_detail, confirmed_at, created_at
+{ &quot;owner_id&quot;: &quot;&lt;auth.uid()&gt;&quot;, &quot;title&quot;: &quot;Sunny room near campus&quot;, &quot;address&quot;: &quot;…&quot;, &quot;area&quot;: &quot;Clifton&quot;,
+  &quot;lat&quot;: 39.13, &quot;lng&quot;: -84.52, &quot;rent&quot;: 650, &quot;utilities_included&quot;: false, &quot;utilities_estimate&quot;: 60,
+  &quot;start_date&quot;: &quot;2027-01-04&quot;, &quot;end_date&quot;: &quot;2027-04-30&quot;, &quot;bedrooms&quot;: 3, &quot;furnished&quot;: true,
+  &quot;unit_type&quot;: &quot;room&quot;, &quot;transfer_type&quot;: &quot;sublease&quot;, &quot;amenities&quot;: [&quot;wifi&quot;, &quot;laundry&quot;],
+  &quot;sublet_fee&quot;: 150, &quot;fee_split_pct&quot;: 50, &quot;landlord_consent&quot;: true,
+  &quot;google_place_id&quot;: &quot;ChIJP3LeqIezQYgRs8U5H0Yrlxo&quot;, &quot;photos&quot;: [&quot;&lt;uid&gt;/a.jpg&quot;], &quot;thumbs&quot;: [&quot;&lt;uid&gt;/a_t.jpg&quot;] }
+</code></pre>
+<h3>3.5 Database schema (Supabase Postgres, <code>public</code> schema)</h3>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Key columns</th>
+<th>Constraints that enforce requirements</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>profiles</td>
+<td>id PK → auth.users, email, display_name, prefs JSONB, prefs_asked, onboarded</td>
+<td>Created by trigger only; update limited to 4 columns; RLS self-only (NFR-02, REQ-19)</td>
+</tr>
+<tr>
+<td>listings</td>
+<td>id PK, owner_id (null = sample), is_sample, title, address, lat, lng, rent, dates, bedrooms, furnished, unit_type, transfer_type, amenities[], sublet_fee, fee_split_pct, household, landlord_consent, photos[], thumbs[], google_place_id, status, confirmed_at</td>
+<td>CHECK end_date &gt; start_date; rent 1 to 20000; title 3 to 120; ≤ 8 photos; <code>landlord_consent</code> must be true; status ∈ {active, rented, removed}; trigger caps 20 active per owner (REQ-04, REQ-20, NFR-05)</td>
+</tr>
+<tr>
+<td>shortlist</td>
+<td>(user_id, listing_id) PK</td>
+<td>RLS self (REQ-24)</td>
+</tr>
+<tr>
+<td>threads</td>
+<td>id PK, listing_id, seeker_id, host_id, names, seeker_shared, host_shared, read_at × 2</td>
+<td>UQ (listing_id, seeker_id); no UPDATE/DELETE grant; trigger blocks inactive and own listings (REQ-08, NFR-06)</td>
+</tr>
+<tr>
+<td>messages</td>
+<td>id PK, thread_id, sender_id, kind ∈ {user, system, sample_host}, body 1 to 2000</td>
+<td>Insert only as self with kind 'user' in own thread; cron deletes after 30 days (REQ-22)</td>
+</tr>
+<tr>
+<td>reports</td>
+<td>id PK, listing_id, reporter_id, reason 3 to 200</td>
+<td>UQ (listing_id, reporter_id) (REQ-23)</td>
+</tr>
+<tr>
+<td>email_allowlist</td>
+<td>email PK</td>
+<td>RLS on, no policies: invisible to the API (REQ-01)</td>
+</tr>
+<tr>
+<td>property_groups</td>
+<td>id PK, name, kind, google_place_id UQ</td>
+<td>Read-only to signed-in users (REQ-27)</td>
+</tr>
+</tbody>
+</table>
+<h3>3.6 Designed, not built: Fair Housing screening (REQ-05, REQ-09, NFR-04)</h3>
+<ul>
+<li><strong>Algorithm:</strong> D2 Algorithm D, unchanged: normalize, fold common substitutions, match whole words, flag mixed-script tokens.</li>
+<li><strong>Where it runs:</strong> instead of an in-process C4 module, it runs inside the <code>listings</code> BEFORE INSERT/UPDATE trigger. It reads a new staff-only <code>phrase_list</code> table, with the version stored on the row.</li>
+<li><strong>What changes:</strong><ul>
+<li>Status gains <code>held</code>.</li>
+<li>The RLS read policy already hides non-active rows from other users (AC-01.3).</li>
+<li>New columns: <code>flagged_phrases text[]</code>, <code>reviewed_by</code>, <code>reviewed_at</code>.</li>
+</ul>
+</li>
+<li><strong>Fail-closed by construction:</strong> if the trigger errors, the insert fails and no active row can exist (NFR-04).</li>
+<li><strong>Staff release or removal</strong> (REQ-09) goes through a staff-only RPC that writes <code>reviewed_by</code> and <code>reviewed_at</code>. Tasks T4, T8 and T23.</li>
+</ul>
+<h2>4. Technology Stack</h2>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Choice</th>
+<th>Justification (requirement or constraint IDs)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Web front end</td>
+<td>Next.js 16.4 (App Router), React 19, TypeScript 5, Tailwind 4, shadcn button, Base UI dialog</td>
+<td>Native elements and a reduced-motion setting: NFR-01. Thumbnails and lazy loading: NFR-08. One language for web and phone: CON-07</td>
+</tr>
+<tr>
+<td>Phone app</td>
+<td>Expo SDK 57 / React Native, Expo Router; shared <code>lib/</code> via <code>npm run sync</code></td>
+<td>Most seekers browse on phones (US-02); one TypeScript codebase: CON-07; Expo Go needs no store release (§7.3 of the RD)</td>
+</tr>
+<tr>
+<td>Data and rules</td>
+<td>Supabase Postgres with RLS, CHECK constraints, triggers, SECURITY DEFINER functions</td>
+<td>Rules are enforced server-side, so the client cannot bypass them: REQ-03, REQ-04, REQ-20, NFR-02, NFR-03, NFR-06</td>
+</tr>
+<tr>
+<td>Authentication</td>
+<td>Supabase Auth email link plus the domain trigger; one password review account</td>
+<td>REQ-01, REQ-02; no SSO available: CON-06</td>
+</tr>
+<tr>
+<td>Real-time</td>
+<td>Supabase Realtime on <code>messages</code> and <code>threads</code></td>
+<td>REQ-08, REQ-15</td>
+</tr>
+<tr>
+<td>File storage</td>
+<td>Supabase Storage <code>listing-photos</code> (public read, owner-folder write, 2 MB, images only); browser compression to 1,600 px and 480 px</td>
+<td>REQ-25; keeps storage within the free tier: CON-01</td>
+</tr>
+<tr>
+<td>Scheduled jobs</td>
+<td>pg_cron</td>
+<td>REQ-22, with no extra service: CON-01, CON-05</td>
+</tr>
+<tr>
+<td>Server routes</td>
+<td>Next.js route handlers on Vercel; <code>requireUser()</code>; in-memory per-user limiter</td>
+<td>Keys stay off the client: NFR-12; abuse limits: NFR-05; third-party terms: CON-09</td>
+</tr>
+<tr>
+<td>Hosting</td>
+<td>Vercel (Hobby) + Supabase Free, then Supabase Pro before launch</td>
+<td>Managed only: CON-05; $0 now and about $25 per month at launch: CON-01; no idle pause: NFR-11</td>
+</tr>
+<tr>
+<td>Maps and geocoding</td>
+<td>Leaflet + OpenStreetMap tiles (Browse map); Google Maps JS (stop map); Nominatim (geocode, cached 24 h)</td>
+<td>REQ-17, REQ-18; no key for most maps: CON-01; 1 request per second policy: CON-09</td>
+</tr>
+<tr>
+<td>Ratings</td>
+<td>Google Places API (New): Text Search + Place Details (rating fields only)</td>
+<td>REQ-27; free monthly calls under CON-01; Place-ID-only storage: CON-09</td>
+</tr>
+<tr>
+<td>Email</td>
+<td>Supabase Auth through custom SMTP (a Gmail app password for the class test, a domain sender later)</td>
+<td>NFR-09; deliverability to UC Mail: CON-08</td>
+</tr>
+<tr>
+<td>Verification</td>
+<td><code>supabase/tests/rls-checks.sql</code> (28 checks, exists); planned: GitHub Actions, Vitest (ranking, distance and fee math), Playwright end-to-end, axe-core, Lighthouse, an uptime monitor</td>
+<td>NFR-03; REQ tests TC-0nn; NFR-01, NFR-08, NFR-11 (T25)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Removed since v1.0</strong> (§7): Express, Render, jose, the Postgres outbox and relay, the server search index (GiST), and the C8 notification queue.</p>
+<h2>5. Known Constraints</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Constraint (RD §8)</th>
+<th>Rules out</th>
+<th>Forces</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CON-01</td>
+<td>$0 now, about $25 per month at launch</td>
+<td>Paid search or moderation services, a message broker, extra servers</td>
+<td>Free tiers; client-side search; pg_cron; Google quota caps and a budget alert; Supabase Pro only at launch</td>
+</tr>
+<tr>
+<td>CON-02</td>
+<td>Contact privacy; row-level access</td>
+<td>Showing emails in listings or chats; client-side-only access checks</td>
+<td>RLS on every table; <code>get_contact</code> only after Share; trigger-set names</td>
+</tr>
+<tr>
+<td>CON-03</td>
+<td>Fair Housing Act / Ohio R.C. 4112</td>
+<td>Protected-characteristic filters; unscreened publishing; roommate questions that mirror protected classes</td>
+<td>Screening trigger (§3.6); report button (REQ-23); fairness review of roommate wording (GQ-12)</td>
+</tr>
+<tr>
+<td>CON-04</td>
+<td>WCAG 2.1 AA</td>
+<td>Colour-only status; gestures as the only control</td>
+<td>Buttons and arrow keys as alternatives to swiping; icon tags with text labels; reduced motion; axe-core gate (T17)</td>
+</tr>
+<tr>
+<td>CON-05</td>
+<td>Managed services only</td>
+<td>Self-hosted servers or SMTP</td>
+<td>Vercel + Supabase; config in environment variables and migrations</td>
+</tr>
+<tr>
+<td>CON-06</td>
+<td>No UC SSO</td>
+<td>SAML/Shibboleth</td>
+<td>UC-domain email link plus the trigger; allowlist for staff</td>
+</tr>
+<tr>
+<td>CON-07</td>
+<td>Three students, Apr 16, 2027</td>
+<td>Separate native codebases; manager onboarding</td>
+<td>Expo with shared <code>lib/</code>; the MoSCoW cut in RD §7</td>
+</tr>
+<tr>
+<td>CON-08</td>
+<td>Authenticated email to UC Mail</td>
+<td>Supabase's built-in sender for real users</td>
+<td>Custom SMTP (T19); Auth rate limits; CAPTCHA (T22)</td>
+</tr>
+<tr>
+<td>CON-09</td>
+<td>Google and OpenStreetMap terms</td>
+<td>Caching ratings; storing Places content other than Place IDs; unthrottled Nominatim</td>
+<td><code>no-store</code> rating route; Place-ID column only; server-side geocode with a User-Agent and 24 h cache</td>
+</tr>
+</tbody>
+</table>
+<h2>6. Traceability Matrix</h2>
+<p>Status: <strong>In progress</strong> = built in the prototype at <code>71d351b</code>, with Week 10 verification pending. <strong>Designed</strong> = specified (D0 to D2 or §3.6) but not built. <strong>Planned</strong> = not yet designed. Test IDs are reserved for the Week 10 plan: REQ-nn → TC-0nn, NFR-nn → TC-1nn, CON-nn → TC-2nn (GQ-10).</p>
+<table>
+<thead>
+<tr>
+<th>Req ID</th>
+<th>Description</th>
+<th>Design Component (D0/D1/D2)</th>
+<th>Status</th>
+<th>Test Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>REQ-01</td>
+<td>UC email or allowlist only, rejected before any email</td>
+<td>D0 C2, D-02; D2 Algorithm C (EC-C2-05) → prototype <code>handle_new_user</code> trigger, <code>email_allowlist</code></td>
+<td>In progress</td>
+<td>TC-001</td>
+</tr>
+<tr>
+<td>REQ-02</td>
+<td>One-time link sign-in; expired or used link fails</td>
+<td>D0 I2, D-09; D2 Fig. 8 → Supabase Auth link; review-account password</td>
+<td>In progress</td>
+<td>TC-002</td>
+</tr>
+<tr>
+<td>REQ-03</td>
+<td>Anonymous requests refused</td>
+<td>D2 G1 (I18) → RLS on all tables; <code>requireUser()</code></td>
+<td>In progress</td>
+<td>TC-003</td>
+</tr>
+<tr>
+<td>REQ-04</td>
+<td>Invalid listing rejected, nothing written</td>
+<td>D1 §5 POST /listings; D2 EC-C3-01 → <code>listings</code> CHECKs</td>
+<td>In progress</td>
+<td>TC-004</td>
+</tr>
+<tr>
+<td>REQ-05</td>
+<td>Screen listings; hold flagged ones</td>
+<td>D0 C4, I7; D2 Algorithm D → §3.6 trigger</td>
+<td>Designed (list content: T4)</td>
+<td>TC-005</td>
+</tr>
+<tr>
+<td>REQ-06</td>
+<td>Listing visible to others within 60 s</td>
+<td>D1 Algorithm B (outbox removed) → direct insert + RLS read policy</td>
+<td>In progress</td>
+<td>TC-006</td>
+</tr>
+<tr>
+<td>REQ-07</td>
+<td>Whole-range date match, term presets</td>
+<td>D0 D-06; D1 Algorithm A → <code>filterListings()</code>, <code>TERMS</code></td>
+<td>In progress</td>
+<td>TC-007</td>
+</tr>
+<tr>
+<td>REQ-08</td>
+<td>Private real-time chat, one thread per listing per seeker</td>
+<td>D0 C6, I5; D2 Part 2.5, Fig. 3 → <code>threads</code>, <code>messages</code>, Realtime</td>
+<td>In progress</td>
+<td>TC-008</td>
+</tr>
+<tr>
+<td>REQ-09</td>
+<td>Staff release or remove held listings, audited</td>
+<td>D1 §5 review endpoints; D2 R-10 → §3.6 staff RPC</td>
+<td>Designed</td>
+<td>TC-009</td>
+</tr>
+<tr>
+<td>REQ-10</td>
+<td>Host sees own listings; re-confirm or mark rented</td>
+<td>D2 GET /listings/mine (Part 2.8) → <code>/mine</code>, RLS owner read</td>
+<td>In progress</td>
+<td>TC-010</td>
+</tr>
+<tr>
+<td>REQ-15</td>
+<td>Real-time unread count</td>
+<td>D2 C6 read marks → <code>mark_thread_read</code>, notification bell</td>
+<td>In progress</td>
+<td>TC-015</td>
+</tr>
+<tr>
+<td>REQ-16</td>
+<td>Rent, bedroom, furnished filters</td>
+<td>D1 Algorithm A (maxRentCents) → <code>filterListings()</code></td>
+<td>In progress</td>
+<td>TC-016</td>
+</tr>
+<tr>
+<td>REQ-17</td>
+<td>Distance from geocoded address; mile filter</td>
+<td>D0 C5 (search) → <code>/api/geocode</code>, <code>lib/geo.ts</code>, <code>DISTANCE_OPTIONS</code></td>
+<td>In progress</td>
+<td>TC-017</td>
+</tr>
+<tr>
+<td>REQ-18</td>
+<td>Nearest shuttle and bus stop; stop map</td>
+<td>D0 C1/C5 → <code>lib/transit.ts</code> (53 real shuttle stops; sample bus stops), stop-map sheet</td>
+<td>In progress</td>
+<td>TC-018</td>
+</tr>
+<tr>
+<td>REQ-19</td>
+<td>Roommate preferences; fit ranking; Show all</td>
+<td>D0 C5 (ranking) → <code>lib/roommates.ts</code>, <code>rankByFit()</code>, MATCH_MIN 55</td>
+<td>In progress</td>
+<td>TC-019</td>
+</tr>
+<tr>
+<td>REQ-20</td>
+<td>Landlord consent required; fee split</td>
+<td>D0 C3 (replaces C7, D-11) → <code>landlord_consent</code> CHECK, <code>sublet_fee</code>, <code>fee_split_pct</code></td>
+<td>In progress</td>
+<td>TC-020</td>
+</tr>
+<tr>
+<td>REQ-21</td>
+<td>Email revealed only after Share</td>
+<td>D2 R-05, NFR-02 → <code>share_contact</code>, <code>get_contact</code></td>
+<td>In progress</td>
+<td>TC-021</td>
+</tr>
+<tr>
+<td>REQ-22</td>
+<td>Messages deleted after 30 days</td>
+<td>D2 C6 data model → pg_cron <code>roost-delete-old-chats</code></td>
+<td>In progress</td>
+<td>TC-022</td>
+</tr>
+<tr>
+<td>REQ-23</td>
+<td>Report a listing once; staff remove</td>
+<td>D2 GQ-02 (no report feature) → <code>reports</code> table, report dialog, SQL removal</td>
+<td>In progress</td>
+<td>TC-023</td>
+</tr>
+<tr>
+<td>REQ-24</td>
+<td>Save and compare 2 or 3 listings</td>
+<td>D0 C1 → <code>shortlist</code>, compare table</td>
+<td>In progress</td>
+<td>TC-024</td>
+</tr>
+<tr>
+<td>REQ-25</td>
+<td>Up to 8 photos, compressed, owner folder</td>
+<td>D0 C1, C3 → <code>lib/images.ts</code>, Storage policies</td>
+<td>In progress (web)</td>
+<td>TC-025</td>
+</tr>
+<tr>
+<td>REQ-26</td>
+<td>Swipe deck, list and map with shared filters</td>
+<td>D0 C1 (D-08) → <code>swipe-deck.tsx</code>, <code>/list</code>, Leaflet map</td>
+<td>In progress</td>
+<td>TC-026</td>
+</tr>
+<tr>
+<td>REQ-27</td>
+<td>Live Google rating of the property company</td>
+<td>D0 C1 → <code>/api/places/*</code>, <code>property_groups</code></td>
+<td>In progress</td>
+<td>TC-027</td>
+</tr>
+<tr>
+<td>REQ-28</td>
+<td>"May be taken" after 10 days unconfirmed</td>
+<td>D2 GQ-03 (listing lifecycle) → <code>confirmed_at</code>, <code>freshness()</code></td>
+<td>In progress</td>
+<td>TC-028</td>
+</tr>
+<tr>
+<td>REQ-29</td>
+<td>LLM suggested questions with a spending cap</td>
+<td><strong>ORPHANED</strong>: no D0 to D2 element; design waits for the advisor's policy and cap (GQ-15), then T27</td>
+<td>Planned</td>
+<td>TC-029</td>
+</tr>
+<tr>
+<td>NFR-01</td>
+<td>WCAG 2.1 AA, 0 axe violations, screen-reader pass</td>
+<td>D0 I1; D2 Part 2.2 → reduced-motion support; full pass is T17</td>
+<td>In progress</td>
+<td>TC-101</td>
+</tr>
+<tr>
+<td>NFR-02</td>
+<td>No email exposed without Share</td>
+<td>D2 R-05, EC-G3-03 → RLS, <code>get_contact</code></td>
+<td>In progress</td>
+<td>TC-102</td>
+</tr>
+<tr>
+<td>NFR-03</td>
+<td>RLS everywhere; anonymous refused; 28 checks pass</td>
+<td>D2 G1 → RLS policies, <code>rls-checks.sql</code></td>
+<td>In progress</td>
+<td>TC-103</td>
+</tr>
+<tr>
+<td>NFR-04</td>
+<td>Screening failure never publishes</td>
+<td>D0 I7 fail-closed; D2 Fig. 7 → §3.6 trigger</td>
+<td>Designed</td>
+<td>TC-104</td>
+</tr>
+<tr>
+<td>NFR-05</td>
+<td>Lookup limits; 20-listing cap; Auth limits; CAPTCHA</td>
+<td>D2 Algorithm C step 3 → <code>allow()</code> limits, listing trigger; CAPTCHA is T22</td>
+<td>In progress</td>
+<td>TC-105</td>
+</tr>
+<tr>
+<td>NFR-06</td>
+<td>Server-set names; no partial rows</td>
+<td>D2 NFR-06, R-06 → BEFORE INSERT triggers, single-statement inserts</td>
+<td>In progress</td>
+<td>TC-106</td>
+</tr>
+<tr>
+<td>NFR-08</td>
+<td>LCP ≤ 2.5 s p75; filter update ≤ 200 ms</td>
+<td>D1 Algorithm A (complexity) → thumbnails, client-side filtering</td>
+<td>In progress</td>
+<td>TC-108</td>
+</tr>
+<tr>
+<td>NFR-09</td>
+<td>95% of sign-in emails within 60 s, not junk</td>
+<td>D0 E1, I13, I14 → custom SMTP (T19)</td>
+<td>Designed</td>
+<td>TC-109</td>
+</tr>
+<tr>
+<td>NFR-10</td>
+<td>4 of 5 testers find and message within 3 min</td>
+<td>D2 Part 2.2 screen table → class test (T18)</td>
+<td>In progress</td>
+<td>TC-110</td>
+</tr>
+<tr>
+<td>NFR-11</td>
+<td>≥ 99% uptime over 7 days; no idle pause</td>
+<td>D2 G3 /healthz → Vercel + Supabase Pro (T26)</td>
+<td>Designed</td>
+<td>TC-111</td>
+</tr>
+<tr>
+<td>NFR-12</td>
+<td>No secrets in the bundle; Maps key restricted</td>
+<td>D2 G2 (secrets in environment) → server-only Places key; restricted browser key is T24</td>
+<td>In progress</td>
+<td>TC-112</td>
+</tr>
+<tr>
+<td>CON-01</td>
+<td>$0 now, about $25 per month at launch</td>
+<td>D0 D-01 (budget) → free tiers, Google quota caps</td>
+<td>In progress</td>
+<td>TC-201 (cost analysis)</td>
+</tr>
+<tr>
+<td>CON-02</td>
+<td>Contact privacy, row-level access</td>
+<td>D0 Part 6 → RLS, <code>get_contact</code></td>
+<td>In progress</td>
+<td>TC-202 (inspection)</td>
+</tr>
+<tr>
+<td>CON-03</td>
+<td>Fair Housing Act / Ohio R.C. 4112</td>
+<td>D0 C4, D-04 → §3.6, reports, wording review</td>
+<td>Designed</td>
+<td>TC-203</td>
+</tr>
+<tr>
+<td>CON-04</td>
+<td>WCAG 2.1 AA</td>
+<td>D0 I1, D-08 → C1 alternatives to gestures</td>
+<td>In progress</td>
+<td>TC-204</td>
+</tr>
+<tr>
+<td>CON-05</td>
+<td>Managed services only</td>
+<td>D0 E3, D-01 → Vercel + Supabase</td>
+<td>In progress</td>
+<td>TC-205 (inspection)</td>
+</tr>
+<tr>
+<td>CON-06</td>
+<td>No UC SSO</td>
+<td>D0 D-02, D-09 → email link + trigger</td>
+<td>In progress</td>
+<td>TC-206</td>
+</tr>
+<tr>
+<td>CON-07</td>
+<td>Team and schedule</td>
+<td>A8 plan → <a href="Tasklist.md">Tasklist.md</a> v2</td>
+<td>In progress</td>
+<td>TC-207 (tracking)</td>
+</tr>
+<tr>
+<td>CON-08</td>
+<td>Authenticated email to UC Mail</td>
+<td>D0 E2, I14 → custom SMTP, CAPTCHA (T19, T22)</td>
+<td>Designed</td>
+<td>TC-208</td>
+</tr>
+<tr>
+<td>CON-09</td>
+<td>Google and OSM terms</td>
+<td>D0 C1 (new external E4/E5) → <code>no-store</code> routes, Place-ID-only column</td>
+<td>In progress</td>
+<td>TC-209 (inspection)</td>
+</tr>
+</tbody>
+</table>
+<p>REQ-11 to REQ-14 and NFR-07 are withdrawn (RD v2.0) and have no rows. <strong>Orphaned: 1 (REQ-29)</strong>, explained above.</p>
+<h2>7. Design Changes Since the Week 7 Review (D2, 2026-10-14)</h2>
+<table>
+<thead>
+<tr>
+<th>Change</th>
+<th>Why</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Custom Node/Express modular monolith on Render → Supabase backend-as-a-service + Next.js on Vercel</td>
+<td>Advisor meeting 1 asked to move to Supabase; rules enforced in the database cover D2's G1, C2, C3 and C6 with far less code (CON-07)</td>
+<td>D-01, D-05 (outbox), D-03 (own JWT) superseded; §2.1 mapping</td>
+</tr>
+<tr>
+<td>Property-manager approval (C7, US-03, REQ-11 to REQ-14) withdrawn</td>
+<td>Team decision built on the advisor's meeting-1 request for landlord consent and a fee split; no real manager to test with (RK6)</td>
+<td>REQ-20 added; UC-02, AC-02.x withdrawn</td>
+</tr>
+<tr>
+<td>C4 screener not built; re-hosted as a trigger</td>
+<td>Prototype time went to the advisor's first priorities (distance, form, preferences)</td>
+<td>REQ-05, NFR-04 stay Must; §3.6; T4, T8</td>
+</tr>
+<tr>
+<td>Server search index (D1 GiST) → client-side filtering and fit ranking</td>
+<td>A few hundred listings (A-01); ranking needs per-user preferences in the browser</td>
+<td>D1 Algorithm A superseded</td>
+</tr>
+<tr>
+<td>Added distance, map, stops, roommate fit, fee split, Google ratings, compare, reports, photo upload, swipe deck</td>
+<td>Advisor meeting 1 requests</td>
+<td>REQ-17 to REQ-28</td>
+</tr>
+<tr>
+<td><code>@uc.edu</code> admitted, not only <code>@mail.uc.edu</code></td>
+<td>Advisor meeting 1: faculty, staff and grad students</td>
+<td>REQ-01</td>
+</tr>
+<tr>
+<td>Chat privacy: TLS + at-rest encryption + 30-day deletion, no E2EE</td>
+<td>Advisor decision 2026-10-25</td>
+<td>REQ-22; RD §7.3 Won't</td>
+</tr>
+<tr>
+<td>Error-code rule (D2 R-08) → PostgREST codes (§3.1)</td>
+<td>No custom API layer to apply R-08</td>
+<td>§3.1</td>
+</tr>
+</tbody>
+</table>
+<h2>8. Advisor Review Record</h2>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Form</th>
+<th>What was discussed</th>
+<th>Changes it produced</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Meeting 1 (date: _____, before 2026-10-21)</td>
+<td>Meeting</td>
+<td>Replace neighborhoods with distance from UC and a map; nearest shuttle and bus stop; a fuller listing form; sublet fee after landlord consent with a split; icon amenities; property Google reviews; open to faculty, staff and grad students; roommate rating scales and fit ranking with Show all; photo compression; 30-day chats; move to Supabase; a weekly checklist</td>
+<td>REQ-01 (<code>@uc.edu</code>), REQ-17 to REQ-20, REQ-22, REQ-24 to REQ-27; US-06 to US-08; the backend change in §7</td>
+</tr>
+<tr>
+<td>2026-10-21</td>
+<td>Meeting (demo and the prep questions in roost-uc-sublease <code>docs/archive/</code>)</td>
+<td>Demo of the prototype; backend ownership; sign-in without SSO; the chat privacy model; transit data; distance meaning; roommate wording and fairness; LLM cap; landlord-consent proof; test plan; timeline. Priorities agreed: distance search, listing form, user preferences, then encryption and image size</td>
+<td>Priority order in RD §7.2; open questions GQ-11 to GQ-15</td>
+</tr>
+<tr>
+<td>2026-10-22</td>
+<td>Written progress update (roost <code>docs/roost-advisor-update-2026-10-22.pdf</code>)</td>
+<td>Status after the move to Supabase; the email-setup blocker; next steps 1 to 8</td>
+<td>Tasklist T19 to T27</td>
+</tr>
+<tr>
+<td>2026-10-25</td>
+<td>Decision</td>
+<td>Chat privacy: encryption in transit and at rest with 30-day retention is enough; no end-to-end encryption; server access limited to authorized staff</td>
+<td>REQ-22; E2EE on the Won't list; GQ-13 narrowed to UC's retention rule</td>
+</tr>
+<tr>
+<td>_____</td>
+<td>Review of RD v2.0 and TS v2.0 drafts (bring the §6 matrix)</td>
+<td>_____</td>
+<td><em>Log as v2.1</em></td>
+</tr>
+</tbody>
+</table>
+<p>Suggested agenda for the draft review: (1) Are REQ-05 and NFR-04 (screening) right as Must even though they are not built yet? (2) The CON-01 budget change ($7 → about $25 per month at launch). (3) GQ-11 to GQ-15 and GQ-18. (4) The orphaned REQ-29.</p></body></html>

@@ -1,0 +1,861 @@
+<!doctype html><html><head><meta charset='utf-8'><title>Requirements Document</title><style>
+@page { size: Letter; margin: 15mm 12mm 14mm 12mm;
+  @top-left { content: "Requirements Document | Verified Student Sublease Marketplace"; font: 7pt 'Helvetica Neue', Arial, sans-serif; color: #555; }
+  @bottom-right { content: "page " counter(page) " of " counter(pages); font: 7pt 'Helvetica Neue', Arial, sans-serif; color: #555; } }
+body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 9.2pt; line-height: 1.36; color: #111; }
+h1 { font-size: 19pt; margin: 0 0 6px 0; }
+h2 { font-size: 13pt; margin: 16px 0 5px 0; border-bottom: 1px solid #bbb; padding-bottom: 2px; break-after: avoid; }
+h3 { font-size: 10.6pt; margin: 11px 0 4px 0; break-after: avoid; }
+p { margin: 3px 0 6px 0; }
+hr { border: 0; border-top: 1px solid #ccc; margin: 8px 0; }
+table { border-collapse: collapse; width: 100%; margin: 5px 0 9px 0; font-size: 7.7pt; line-height: 1.28; }
+th { background: #E9EEF5; text-align: left; }
+th, td { border: 1px solid #9aa; padding: 2px 4px; vertical-align: top; }
+tr { break-inside: avoid; }
+thead { display: table-header-group; }
+code { font-family: Menlo, monospace; font-size: 0.86em; background: #F1F1F1; padding: 0 2px; }
+pre { background: #F6F6F6; border: 1px solid #ddd; padding: 5px; font-size: 7.2pt; white-space: pre-wrap; break-inside: avoid; }
+pre code { background: none; }
+ul { margin: 3px 0 6px 18px; padding: 0; }
+a { color: #1a4f9c; text-decoration: none; }
+</style></head><body><h1>Requirements Document</h1>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Project</td>
+<td>Roost, a verified student sublease marketplace for UC</td>
+</tr>
+<tr>
+<td>Course</td>
+<td>CS5001 Senior Design I, Assignment 9 (Week 9)</td>
+</tr>
+<tr>
+<td>Team members</td>
+<td>Danvanth Vanganuri, Jovan Jose Asker Fredy, Mohamed Aidja</td>
+</tr>
+<tr>
+<td>Document version</td>
+<td>2.0 (2026-10-28)</td>
+</tr>
+<tr>
+<td>Companion document</td>
+<td><a href="Technical_Specification.md">Technical_Specification.md</a> v2.0, which traces to this version</td>
+</tr>
+<tr>
+<td>Prototype</td>
+<td><a href="https://github.com/trivinity/roost-uc-sublease">roost-uc-sublease</a> (commit <code>71d351b</code>, 2026-10-26); live at https://roost-uc-sublease.vercel.app</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>1. Version and Change Log</h2>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Date</th>
+<th>Change</th>
+<th>Author</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.1</td>
+<td>2026-09 (Week 4)</td>
+<td>Baseline: US-01 to US-05, UC-01, UC-02, AC-01.1 to AC-02.2 (<a href="User_Stories.md">User_Stories.md</a> v1.0).</td>
+<td>Team</td>
+</tr>
+<tr>
+<td>0.2</td>
+<td>2026-10-14 (Week 7)</td>
+<td>D2 Part 4 numbers NFR-01 to NFR-07; every story is Must.</td>
+<td>Team</td>
+</tr>
+<tr>
+<td>1.0</td>
+<td>2026-10-28</td>
+<td>Consolidated D0, D1, D2 and A8 into REQ-01 to REQ-16, NFR-01 to NFR-11 and CON-01 to CON-08. NFR-07 withdrawn (it became CON-01). Not submitted.</td>
+<td>Jovan Jose Asker Fredy</td>
+</tr>
+<tr>
+<td>2.0</td>
+<td>2026-10-28</td>
+<td><strong>Realigned to the Roost prototype and the advisor meetings</strong> (Technical Specification §8). REQ-11 to REQ-14 withdrawn: property-manager approval was replaced by landlord consent (REQ-20). REQ-01 to REQ-04, REQ-06, REQ-07, REQ-10, REQ-15, REQ-16 and NFR-02, NFR-03, NFR-05, NFR-06, NFR-08, NFR-09, NFR-11 restated to match the built behavior. Added REQ-17 to REQ-29, NFR-12, CON-09. REQ-05 and NFR-04 (Fair Housing screening) are kept as requirements that are not built yet. User_Stories moves to v2.0.</td>
+<td>Jovan Jose Asker Fredy</td>
+</tr>
+<tr>
+<td>2.1</td>
+<td><em>pending</em></td>
+<td>Edits from the advisor review of these drafts.</td>
+<td><em>TBD</em></td>
+</tr>
+</tbody>
+</table>
+<p><strong>ID rules.</strong> IDs are never renumbered or reused. A dropped requirement stays in its table marked WITHDRAWN, and the change is logged above. Story IDs (US, UC, AC) come from User_Stories.md v2.0.</p>
+<h2>2. Purpose and Scope</h2>
+<p><strong>Purpose.</strong> This document states what Roost must do and for whom. Each requirement is a unit that the Week 10 test plan verifies. Each traces back to a user story and forward to a design element and a test case (<a href="Technical_Specification.md">Technical_Specification.md</a> §6).</p>
+<p><strong>Product goal.</strong> Help UC students, faculty and staff fill or find term-length subleases safely. Only people with a UC email can use Roost. Listings are filtered by whole-term dates and distance from campus, and ranked by roommate fit. Subletting needs the landlord's consent, and contact details stay private until shared.</p>
+<p><strong>In scope for release 1.0</strong> (class test in spring, demo Apr 16, 2027):</p>
+<ul>
+<li>The web app and the Expo phone app.</li>
+<li>Sign-in by an emailed link to a UC address.</li>
+<li>Posting listings with photos, landlord consent and the sublet-fee split.</li>
+<li>Swipe, list and map browsing, with date, distance, rent, bedroom and furnished filters.</li>
+<li>Roommate-fit ranking; nearest shuttle and bus stop; property-company Google rating.</li>
+<li>Saved listings and side-by-side compare.</li>
+<li>Real-time chat with opt-in contact sharing and 30-day deletion.</li>
+<li>Reporting a listing.</li>
+<li>Fair Housing screening of listings.</li>
+</ul>
+<p><strong>Out of scope:</strong> see the Won't list (§7.3).</p>
+<h2>3. Stakeholders and User Goals (Week 4, revised v2.0)</h2>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Stakeholder</th>
+<th>User goal</th>
+<th>Stories</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Primary</td>
+<td>UC student leaving for a co-op (host)</td>
+<td>Fill an empty room fast with someone trustworthy</td>
+<td>US-01, US-08</td>
+</tr>
+<tr>
+<td>Primary</td>
+<td>Student relocating for one term (seeker)</td>
+<td>Housing that covers the whole term, close to campus, with compatible roommates</td>
+<td>US-02, US-06, US-07, US-10</td>
+</tr>
+<tr>
+<td>Primary</td>
+<td>UC faculty, staff, grad students (<code>@uc.edu</code>)</td>
+<td>The same marketplace for short stays</td>
+<td>US-01</td>
+</tr>
+<tr>
+<td>Secondary</td>
+<td>Property manager / landlord</td>
+<td>Subletting only with their consent</td>
+<td>US-08</td>
+</tr>
+<tr>
+<td>Secondary</td>
+<td>Parent or guarantor</td>
+<td>The other party is a real UC person</td>
+<td>US-01</td>
+</tr>
+<tr>
+<td>Hidden (accessibility)</td>
+<td>Screen-reader user</td>
+<td>Search and contact without sighted help</td>
+<td>US-04</td>
+</tr>
+<tr>
+<td>Hidden (compliance)</td>
+<td>Fair Housing reviewer</td>
+<td>No discriminatory preference language published</td>
+<td>US-05, US-09</td>
+</tr>
+<tr>
+<td>Hidden (downstream)</td>
+<td>UC Mail; Google Maps Platform; OpenStreetMap</td>
+<td>Well-formed, rate-limited email; use within their terms</td>
+<td>NFR-05, CON-08, CON-09</td>
+</tr>
+</tbody>
+</table>
+<h2>4. Glossary</h2>
+<p>Each term is defined once here and has this meaning everywhere in both documents.</p>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Host (subleaser)</td>
+<td>A signed-in user who posts a listing. "Owner" in a requirement means the host of that listing.</td>
+</tr>
+<tr>
+<td>Seeker (sublessee)</td>
+<td>A signed-in user looking for a sublease, who starts a chat with a host.</td>
+</tr>
+<tr>
+<td>UC email</td>
+<td>An address ending exactly in <code>@mail.uc.edu</code> or <code>@uc.edu</code>.</td>
+</tr>
+<tr>
+<td>Allowlist</td>
+<td>The <code>email_allowlist</code> table of non-UC addresses that staff let in (advisor, testers). The API cannot read it.</td>
+</tr>
+<tr>
+<td>Review account</td>
+<td><code>reviewer@roost-demo.test</code>, an allowlisted account that signs in with a password for the advisor. To be retired after review.</td>
+</tr>
+<tr>
+<td>Sign-in link</td>
+<td>A one-time link that Supabase Auth emails to the address. It is used for both sign-up and sign-in.</td>
+</tr>
+<tr>
+<td>Signed-in user</td>
+<td>A request carrying a valid Supabase session token (JWT). Anonymous requests are refused by row-level security.</td>
+</tr>
+<tr>
+<td>Row-level security (RLS)</td>
+<td>Postgres rules on every table that decide which rows each signed-in user may read or write.</td>
+</tr>
+<tr>
+<td>Listing</td>
+<td>One offer for a room or a whole unit. Its status is active, rented or removed. Sample listings (<code>is_sample</code>) are made-up demo data, labelled "Sample".</td>
+</tr>
+<tr>
+<td>Landlord consent</td>
+<td>The host's statement that the landlord allows subletting. A database check requires it on every listing.</td>
+</tr>
+<tr>
+<td>Transfer type</td>
+<td>Sublease, assignment or re-let.</td>
+</tr>
+<tr>
+<td>Sublet fee / fee split</td>
+<td>The landlord's fee for subletting, and the percentage (0 to 100) the host covers.</td>
+</tr>
+<tr>
+<td>Whole-range match</td>
+<td>A listing matches dates [from, to] when its start ≤ from and its end ≥ to. Overlap alone is not a match.</td>
+</tr>
+<tr>
+<td>Distance</td>
+<td>Straight-line miles from the UC campus center (39.1329, -84.5150) to the listing's coordinates.</td>
+</tr>
+<tr>
+<td>Roommate preferences</td>
+<td>Six 4-to-5-level scales (cleanliness, noise, hanging out at home, overnight guests, sleep schedule, approachability) plus smoke-free and cat/dog checkboxes. Users rate themselves; room listings carry the household's ratings.</td>
+</tr>
+<tr>
+<td>Fit score</td>
+<td>0 to 100% match between a seeker's preferences and a household. "Poor fit" is below 55%. Whole units rank as 75.</td>
+</tr>
+<tr>
+<td>Shortlist</td>
+<td>A user's saved listings. Compare shows 2 or 3 of them side by side.</td>
+</tr>
+<tr>
+<td>Thread</td>
+<td>A chat between one seeker and the host of one listing.</td>
+</tr>
+<tr>
+<td>Contact sharing</td>
+<td>Pressing Share in a thread, which lets the other participant read your email.</td>
+</tr>
+<tr>
+<td>Report</td>
+<td>A user's 3 to 200 character complaint about a listing. Staff act on reports.</td>
+</tr>
+<tr>
+<td>Flagged phrase</td>
+<td>Text that matches the Fair Housing phrase list. A listing with one is held for review (planned).</td>
+</tr>
+<tr>
+<td>Freshness</td>
+<td>Days since the host last confirmed "still available". After 10 days the listing is labelled "may be taken".</td>
+</tr>
+<tr>
+<td>Cn, Gn, En, In</td>
+<td>Component, glue module, external system and interface IDs from D0 to D2. TS §2 maps each to the prototype.</td>
+</tr>
+<tr>
+<td>MoSCoW</td>
+<td>Must (the release fails without it), Should (important, but the release works without it), Could (only if time remains), Won't (excluded from this release).</td>
+</tr>
+</tbody>
+</table>
+<h2>5. Functional Requirements</h2>
+<p>Verification: <strong>T</strong> = automated test, <strong>D</strong> = demonstration, <strong>I</strong> = inspection, <strong>A</strong> = analysis. "Built" = present in the prototype at commit <code>71d351b</code>.</p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+<th>Priority</th>
+<th>Source story</th>
+<th>Verification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>REQ-01</td>
+<td>The system shall create an account only for a UC email or an allowlisted address. It shall reject any other address before an email is sent, with "Only UC email addresses can join Roost".</td>
+<td><b>Must</b></td>
+<td>US-01; AC-01.2</td>
+<td>T (rls-checks, auth API)</td>
+</tr>
+<tr>
+<td>REQ-02</td>
+<td>The system shall sign a user in only through a one-time emailed link (or the password of the review account). An expired or already used link shall create no session.</td>
+<td><b>Must</b></td>
+<td>US-01; AC-01.2</td>
+<td>T</td>
+</tr>
+<tr>
+<td>REQ-03</td>
+<td>The system shall refuse every read or write of listings, profiles, chats, saved listings and reports from an anonymous request, and shall refuse the three API routes without a valid session (401).</td>
+<td><b>Must</b></td>
+<td>US-01</td>
+<td>T</td>
+</tr>
+<tr>
+<td>REQ-04</td>
+<td>The system shall reject a listing whose end date is not after its start date, whose rent is outside $1 to $20,000 per month, whose title is outside 3 to 120 characters, that has more than 8 photos, or that lacks landlord consent. Nothing shall be written.</td>
+<td><b>Must</b></td>
+<td>AC-01.4</td>
+<td>T</td>
+</tr>
+<tr>
+<td>REQ-05</td>
+<td>The system shall screen every listing's title and description against the versioned Fair Housing phrase list before it becomes active. A listing with at least one flagged phrase shall be held (not active), the host shown each flagged phrase, and the listing return 0 results for other users.</td>
+<td><b>Must</b></td>
+<td>US-05; AC-01.3</td>
+<td>T</td>
+</tr>
+<tr>
+<td>REQ-06</td>
+<td>The system shall show a valid listing to other signed-in users within 60 s of a successful post.</td>
+<td><b>Must</b></td>
+<td>US-01; AC-01.1</td>
+<td>T (timed)</td>
+</tr>
+<tr>
+<td>REQ-07</td>
+<td>The system shall show only active listings that are a whole-range match for the chosen dates, and shall offer Spring, Summer and Fall term presets.</td>
+<td><b>Must</b></td>
+<td>US-02; AC-03.1</td>
+<td>T</td>
+</tr>
+<tr>
+<td>REQ-08</td>
+<td>The system shall let a signed-in seeker start one thread per listing with the host of an active listing that is not their own. It shall deliver 1 to 2,000 character messages to the other participant in real time, and only the two participants may read the thread.</td>
+<td><b>Must</b></td>
+<td>US-01; US-04</td>
+<td>T</td>
+</tr>
+<tr>
+<td>REQ-09</td>
+<td>Only staff shall release or remove a held listing, and each decision shall be recorded with who and when.</td>
+<td><b>Should</b></td>
+<td>US-05</td>
+<td>T</td>
+</tr>
+<tr>
+<td>REQ-10</td>
+<td>The system shall show the host their own listings, whatever the status, and let them re-confirm "still available" or mark a listing rented.</td>
+<td><b>Should</b></td>
+<td>US-01</td>
+<td>T</td>
+</tr>
+<tr>
+<td>REQ-11</td>
+<td>WITHDRAWN (v2.0): owner proposes a sublessee for manager approval. Replaced by REQ-20.</td>
+<td>—</td>
+<td>(US-03, withdrawn)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>REQ-12</td>
+<td>WITHDRAWN (v2.0): manager approves or rejects. Replaced by REQ-20.</td>
+<td>—</td>
+<td>(US-03)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>REQ-13</td>
+<td>WITHDRAWN (v2.0): reminder after 5 business days.</td>
+<td>—</td>
+<td>(AC-02.2)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>REQ-14</td>
+<td>WITHDRAWN (v2.0): manager emailed when a listing is published.</td>
+<td>—</td>
+<td>(UC-01 step 10, v1)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>REQ-15</td>
+<td>The system shall show an unread-message count that updates in real time. There are no email alerts for messages this release.</td>
+<td><b>Could</b></td>
+<td>US-01</td>
+<td>T</td>
+</tr>
+<tr>
+<td>REQ-16</td>
+<td>The system shall filter by a rent range chosen between $300 and $2,000, by bedrooms (1, 2, 3, 4+) and by furnished.</td>
+<td><b>Could</b></td>
+<td>US-02</td>
+<td>T</td>
+</tr>
+<tr>
+<td>REQ-17</td>
+<td>The system shall compute each listing's distance from its geocoded address (it is never typed in) and filter by 1, 3, 5, 10 or 20 miles, or any distance.</td>
+<td><b>Should</b></td>
+<td>US-02; US-07</td>
+<td>T</td>
+</tr>
+<tr>
+<td>REQ-18</td>
+<td>The system shall show each listing's nearest UC shuttle stop and Metro bus stop with their distance. Tapping a distance shall open a map of the stop, the listing and campus.</td>
+<td><b>Could</b></td>
+<td>US-07</td>
+<td>T + D</td>
+</tr>
+<tr>
+<td>REQ-19</td>
+<td>The system shall collect roommate preferences after the first sign-in (editable later), rank listings by fit score, and hide poor fits until Show all, displaying how many are hidden.</td>
+<td><b>Should</b></td>
+<td>US-06; AC-03.2</td>
+<td>T</td>
+</tr>
+<tr>
+<td>REQ-20</td>
+<td>The system shall require landlord consent on every listing (a database check). After consent it shall collect the sublet fee ($0 to $20,000) and the host's share (0 to 100%), and show the dollar split on the listing and in compare.</td>
+<td><b>Must</b></td>
+<td>US-08</td>
+<td>T</td>
+</tr>
+<tr>
+<td>REQ-21</td>
+<td>The system shall reveal a participant's email to the other participant only after that participant presses Share. Each share shall post a system message that users cannot forge.</td>
+<td><b>Should</b></td>
+<td>US-11; AC-03.3</td>
+<td>T</td>
+</tr>
+<tr>
+<td>REQ-22</td>
+<td>The system shall delete chat messages 30 days after they are sent (nightly, 03:17 UTC) and say so in the chat screen.</td>
+<td><b>Should</b></td>
+<td>US-11; AC-03.4</td>
+<td>T</td>
+</tr>
+<tr>
+<td>REQ-23</td>
+<td>The system shall let a signed-in user report a listing once, with a 3 to 200 character reason, and let staff remove the listing (status "removed").</td>
+<td><b>Should</b></td>
+<td>US-09; AC-03.5</td>
+<td>T + I</td>
+</tr>
+<tr>
+<td>REQ-24</td>
+<td>The system shall let a user save listings and compare 2 or 3 side by side, including rent, fees, distance and fit.</td>
+<td><b>Could</b></td>
+<td>US-10</td>
+<td>T</td>
+</tr>
+<tr>
+<td>REQ-25</td>
+<td>The system shall accept up to 8 photos per listing, compress each to a 1,600 px long side plus a 480 px thumbnail before upload, and store them only in the host's own folder.</td>
+<td><b>Should</b></td>
+<td>US-08</td>
+<td>T</td>
+</tr>
+<tr>
+<td>REQ-26</td>
+<td>The system shall present listings as a swipe deck (drag, buttons or arrow keys, with undo), as a list, and as a map, all sharing one set of filters.</td>
+<td><b>Could</b></td>
+<td>US-02</td>
+<td>D</td>
+</tr>
+<tr>
+<td>REQ-27</td>
+<td>The system shall show the live Google star rating and review count of a listing's property company, fetched when the listing is viewed and never stored.</td>
+<td><b>Could</b></td>
+<td>US-02</td>
+<td>T</td>
+</tr>
+<tr>
+<td>REQ-28</td>
+<td>The system shall label a listing "may be taken" when its host has not confirmed it as available for more than 10 days.</td>
+<td><b>Could</b></td>
+<td>US-02</td>
+<td>T</td>
+</tr>
+<tr>
+<td>REQ-29</td>
+<td>The system shall offer suggested questions to ask a host, generated by a low-cost LLM with a daily spending cap.</td>
+<td><b>Could</b></td>
+<td>US-04; US-11</td>
+<td>D</td>
+</tr>
+</tbody>
+</table>
+<h2>6. Non-Functional Requirements</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Type</th>
+<th>Requirement</th>
+<th>Priority</th>
+<th>Source</th>
+<th>Verification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NFR-01</td>
+<td>Usability (accessibility)</td>
+<td>Every route shall meet WCAG 2.1 AA with 0 serious or critical axe-core violations. Testers using NVDA and VoiceOver shall each complete search and message by keyboard only. Motion shall respect <code>prefers-reduced-motion</code>.</td>
+<td><b>Must</b></td>
+<td>US-04</td>
+<td>T (axe-core) + D</td>
+</tr>
+<tr>
+<td>NFR-02</td>
+<td>Security (privacy)</td>
+<td>No API response shall contain another user's email address unless that user shared it in the thread (REQ-21). A user shall read only their own profile, saved listings and reports.</td>
+<td><b>Must</b></td>
+<td>US-11; CON-02</td>
+<td>T (rls-checks)</td>
+</tr>
+<tr>
+<td>NFR-03</td>
+<td>Security (access control)</td>
+<td>Every table shall have RLS, and anonymous requests to every table, chat function and storage write shall be refused. All scripted RLS checks (28 at commit <code>71d351b</code>) shall pass on each release.</td>
+<td><b>Must</b></td>
+<td>US-01</td>
+<td>T</td>
+</tr>
+<tr>
+<td>NFR-04</td>
+<td>Reliability (fail-closed)</td>
+<td>100% of listings posted while screening is unavailable or errors shall be held or rejected, and never made active.</td>
+<td><b>Must</b></td>
+<td>US-05; CON-03</td>
+<td>T (fault injection)</td>
+</tr>
+<tr>
+<td>NFR-05</td>
+<td>Security (abuse)</td>
+<td>Address lookups shall be limited to 30 per user per minute, company searches to 20 and ratings to 60 (429 beyond). A host shall have at most 20 active listings. Sign-up and sign-in email shall stay within the Supabase Auth rate limit, with CAPTCHA before the class announcement.</td>
+<td><b>Should</b></td>
+<td>CON-08</td>
+<td>T</td>
+</tr>
+<tr>
+<td>NFR-06</td>
+<td>Reliability (integrity)</td>
+<td>Host names, chat names and listing titles shall be set by database triggers, never taken from the client. A failed insert shall leave no partial thread, message or listing row.</td>
+<td><b>Should</b></td>
+<td>US-01</td>
+<td>T</td>
+</tr>
+<tr>
+<td>NFR-07</td>
+<td>WITHDRAWN (v1.0)</td>
+<td>The budget requirement is a constraint; see CON-01.</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>NFR-08</td>
+<td>Performance (load)</td>
+<td>On a mid-range phone over 4G, Discover shall show its first card with Largest Contentful Paint ≤ 2.5 s at p75, and applying a filter shall update the results within 200 ms, with 200 active listings.</td>
+<td><b>Should</b></td>
+<td>US-02</td>
+<td>T (Lighthouse mobile)</td>
+</tr>
+<tr>
+<td>NFR-09</td>
+<td>Performance (sign-in email)</td>
+<td>95% of sign-in emails shall arrive in a <code>@mail.uc.edu</code> inbox (not junk) within 60 s of the request, through custom SMTP.</td>
+<td><b>Should</b></td>
+<td>US-01</td>
+<td>T (inbox test)</td>
+</tr>
+<tr>
+<td>NFR-10</td>
+<td>Usability (task)</td>
+<td>At least 4 of 5 first-time UC testers shall, without help, find a listing that covers given dates and message its host within 3 minutes.</td>
+<td><b>Should</b></td>
+<td>US-02; US-04</td>
+<td>D (class test)</td>
+</tr>
+<tr>
+<td>NFR-11</td>
+<td>Reliability (availability)</td>
+<td>The live site shall return 200 on ≥ 99% of 5-minute checks over the 7 days before the class test, on a Supabase plan that does not pause when idle.</td>
+<td><b>Should</b></td>
+<td>US-01</td>
+<td>T (uptime monitor)</td>
+</tr>
+<tr>
+<td>NFR-12</td>
+<td>Security (secrets)</td>
+<td>The shipped JavaScript shall contain no Supabase secret or service-role key and no Google Places key. Any browser Maps key shall be restricted to the site's address and the Maps JavaScript API.</td>
+<td><b>Should</b></td>
+<td>CON-09</td>
+<td>I (bundle scan)</td>
+</tr>
+</tbody>
+</table>
+<h2>7. MoSCoW Summary</h2>
+<p>There are 36 active requirements: <strong>13 Must (36%)</strong>, 15 Should, 8 Could; 4 REQs and 1 NFR are withdrawn. The Must set is the smallest release that still serves every stakeholder group:</p>
+<ul>
+<li>Only UC people can get in.</li>
+<li>A host can post a valid, consented, screened listing.</li>
+<li>A seeker can find it by dates and message the host privately.</li>
+<li>The whole path works with a screen reader.</li>
+</ul>
+<h3>7.1 Must</h3>
+<p>REQ-01, REQ-02, REQ-03 (UC-only access) · REQ-04, REQ-05, REQ-06, REQ-20 (valid, screened, consented listings reach users) · REQ-07 (whole-range date match) · REQ-08 (private real-time chat) · NFR-01 (accessibility) · NFR-02, NFR-03 (privacy, access control) · NFR-04 (never publish unscreened).</p>
+<p>REQ-05, NFR-04 and NFR-01 are Must but <strong>not built yet</strong>. They are the gap between the prototype and release 1.0 (Tasklist T4, T8, T17).</p>
+<h3>7.2 Should and Could</h3>
+<p><strong>Should:</strong> REQ-09, REQ-10, REQ-17, REQ-19, REQ-21, REQ-22, REQ-23, REQ-25, NFR-05, NFR-06, NFR-08, NFR-09, NFR-10, NFR-11, NFR-12.
+<strong>Could:</strong> REQ-15, REQ-16, REQ-18, REQ-24, REQ-26, REQ-27, REQ-28, REQ-29.</p>
+<p>Distance (REQ-17) and roommate fit (REQ-19) are Should, not Must: the advisor ranked them as first priorities, but a student can still find housing by dates without them. The swipe deck (REQ-26) is Could because the list view (REQ-07) already serves US-02.</p>
+<h3>7.3 Won't (this release)</h3>
+<p>These items are written down so they cannot creep back in. Reopening one needs a story and a change-log entry.</p>
+<table>
+<thead>
+<tr>
+<th>Won't</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Property-manager approval workflow and reminders (REQ-11 to REQ-14)</td>
+<td>Team decision: landlord consent (REQ-20), requested by the advisor, covers it; the lease already gives the landlord control.</td>
+</tr>
+<tr>
+<td>End-to-end encrypted chat</td>
+<td>Advisor decision 2026-10-25: TLS in transit, AES-256 at rest, 30-day retention. E2EE would block review of reported chats and LLM suggestions.</td>
+</tr>
+<tr>
+<td>UC single sign-on</td>
+<td>Needs UC IT approval (CON-06); last on the checklist.</td>
+</tr>
+<tr>
+<td>Payments, escrow, deposits, lease e-signature</td>
+<td>Out of scope by design; legal and financial exposure.</td>
+</tr>
+<tr>
+<td>Filters on protected characteristics</td>
+<td>Fair Housing (CON-03).</td>
+</tr>
+<tr>
+<td>Publishing to the App Store or Google Play</td>
+<td>The phone app is tested through Expo Go only.</td>
+</tr>
+<tr>
+<td>Live shuttle arrivals</td>
+<td>Needs UC's TripShot data feed.</td>
+</tr>
+<tr>
+<td>Google review text (only the rating and count)</td>
+<td>Per-review attribution and higher cost (CON-09).</td>
+</tr>
+<tr>
+<td>Self-service landlord or manager accounts</td>
+<td>No story; landlords are not users this release.</td>
+</tr>
+</tbody>
+</table>
+<h2>8. Inherited Constraints</h2>
+<p>CON-01 to CON-05 come from the Week 3 constraint areas as D0 Part 6 records them. CON-06 to CON-08 come from the D0 decision log and the A8 plan. CON-09 is new in v2.0. TS §5 states what each one rules out or forces.</p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Area</th>
+<th>Constraint</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CON-01</td>
+<td>Economic</td>
+<td>$0 per month during development (free tiers). At launch, no more than Supabase Pro (about $25 per month). Google APIs capped by a daily quota and a budget alert.</td>
+<td>Week 3; D0 Part 6; CHECKLIST (v2.0 restated; was about $7)</td>
+</tr>
+<tr>
+<td>CON-02</td>
+<td>Security / privacy</td>
+<td>UC email addresses are not exposed to other users without consent; each user reaches only the rows the rules allow.</td>
+<td>Week 3; D0 Part 6</td>
+</tr>
+<tr>
+<td>CON-03</td>
+<td>Legal</td>
+<td>The Fair Housing Act (42 U.S.C. §3604(c)) and Ohio R.C. 4112 forbid discriminatory preference language in listings and in roommate wording.</td>
+<td>Week 3; US-05; advisor prep 2026-10-21 Q6</td>
+</tr>
+<tr>
+<td>CON-04</td>
+<td>Social / ethical</td>
+<td>Usable with assistive technology (WCAG 2.1 AA).</td>
+<td>Week 3; US-04</td>
+</tr>
+<tr>
+<td>CON-05</td>
+<td>Hosting</td>
+<td>Managed services only (Vercel, Supabase), with no servers for the team to patch.</td>
+<td>Week 3; D0 Part 6</td>
+</tr>
+<tr>
+<td>CON-06</td>
+<td>Identity</td>
+<td>UC SSO is not available without IT approval. Eligibility is proven by owning a UC mailbox.</td>
+<td>D0 D-02; CHECKLIST</td>
+</tr>
+<tr>
+<td>CON-07</td>
+<td>Team / schedule</td>
+<td>Three students, about 10 to 14 h per week, release by the Apr 16, 2027 expo.</td>
+<td>A8 plan</td>
+</tr>
+<tr>
+<td>CON-08</td>
+<td>Downstream</td>
+<td>UC Mail must receive authenticated email. Supabase's built-in sender only reaches the project team, so custom SMTP is required.</td>
+<td>Week 4 hidden stakeholder; SUPABASE.md</td>
+</tr>
+<tr>
+<td>CON-09</td>
+<td>Third-party terms</td>
+<td>Google Places: store only Place IDs, show Google attribution, no caching. OpenStreetMap Nominatim: at most 1 request per second, with an identifying User-Agent.</td>
+<td>GOOGLE_REVIEWS.md (new v2.0)</td>
+</tr>
+</tbody>
+</table>
+<h2>9. Assumptions and Open Questions</h2>
+<p>Owners marked † are proposed; the team confirms them at the next meeting.</p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Assumption or question</th>
+<th>Owner</th>
+<th>Due</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A-01</td>
+<td>Campus-scale demand: low thousands of users and a few hundred active listings per term. NFR-08 is sized on this.</td>
+<td>Jovan</td>
+<td>Recheck at M8 (2027-03-12)</td>
+</tr>
+<tr>
+<td>A-02</td>
+<td>Custom SMTP (a Gmail app password, about 500 emails per day) is enough for the class test until a domain exists.</td>
+<td>Danvanth †</td>
+<td>2026-11-13</td>
+</tr>
+<tr>
+<td>A-03</td>
+<td>Straight-line distance is acceptable for release 1.0.</td>
+<td>Jovan</td>
+<td>GQ-11</td>
+</tr>
+<tr>
+<td>GQ-02</td>
+<td>Phrase list v1 content, and the Ohio protected classes (ancestry, military status).</td>
+<td>Jovan</td>
+<td>M4 (2026-12-04)</td>
+</tr>
+<tr>
+<td>GQ-03</td>
+<td>(Closed v2.0.) Listings can now leave active: rented (host) or removed (staff).</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>GQ-04</td>
+<td>(Closed v2.0.) Manager approval withdrawn.</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>GQ-05</td>
+<td>(Closed v2.0.) The email provider is Supabase Auth with custom SMTP; setup is still open (T19).</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>GQ-09</td>
+<td>CON-01 to CON-05 come from D0's summary of the Week 3 essay; confirm against the essay. The budget change in CON-01 needs advisor agreement.</td>
+<td>Jovan</td>
+<td>2026-11-04</td>
+</tr>
+<tr>
+<td>GQ-10</td>
+<td>The TC-### IDs in the TS §6 matrix are reserved; the Week 10 test plan keeps them.</td>
+<td>Mohamed</td>
+<td>Week 10</td>
+</tr>
+<tr>
+<td>GQ-11</td>
+<td>Distance: straight-line (current) or driving/transit time? Maximum radius?</td>
+<td>Advisor</td>
+<td>Next meeting</td>
+</tr>
+<tr>
+<td>GQ-12</td>
+<td>Roommate categories and wording, the fairness check (CON-03), who sees a user's ratings, and whether hosts state preferences.</td>
+<td>Advisor; Jovan</td>
+<td>Next meeting</td>
+</tr>
+<tr>
+<td>GQ-13</td>
+<td>Who at UC (IT security, General Counsel) sets the chat-retention rule and the student-data policy?</td>
+<td>Advisor</td>
+<td>2026-11-13</td>
+</tr>
+<tr>
+<td>GQ-14</td>
+<td>Landlord consent: is a checkbox enough, or is proof needed (a lease clause upload)?</td>
+<td>Advisor</td>
+<td>Next meeting</td>
+</tr>
+<tr>
+<td>GQ-15</td>
+<td>LLM suggestions (REQ-29): what text may be sent to the provider, and what is the monthly cap?</td>
+<td>Advisor</td>
+<td>Before T27</td>
+</tr>
+<tr>
+<td>GQ-16</td>
+<td>Hide listings that are not re-confirmed after N days?</td>
+<td>Team</td>
+<td>2026-11-13</td>
+</tr>
+<tr>
+<td>GQ-17</td>
+<td>Metro (SORTA) GTFS stops to replace the sample bus stops.</td>
+<td>Jovan †</td>
+<td>2027-01-15</td>
+</tr>
+<tr>
+<td>GQ-18</td>
+<td>The default rent filter ($300 to $2,000) hides listings the database accepts (rent up to $20,000). Should the top of the slider mean "no limit"?</td>
+<td>Mohamed †</td>
+<td>2026-11-13</td>
+</tr>
+</tbody>
+</table></body></html>

@@ -1,5 +1,5 @@
 Team Name: JDM
 Team Members and Majors: Danvanth Vanganuri (CS), Jovan Jose Asker Fredy (CS), Mohamed Aidja (CS)
-Team Topic: CallBack is an intelligent career infrastructure platform that helps students and job seekers manage their entire career journey in one place. Users can upload a resume, get matched with relevant jobs, and instantly see which skills they're missing for the roles they want. A built-in application tracker keeps every opportunity organized, so nothing slips through the cracks during a busy search. Delivered as both a browser extension and a standalone application, CallBack meets users wherever they're job hunting and turns a scattered process into a guided one.
- 
- 
+Team Topic: Roost is a verified sublease marketplace for the University of Cincinnati. Students leaving for a co-op, and faculty, staff or grad students on short stays, can fill or find a term-length sublease with people they can trust: only UC email addresses can join. Seekers browse by swiping, as a list, or on a map. They filter by the dates they need, distance from campus, and rent, and see rooms ranked by how well they would fit with the current roommates. Every listing shows its nearest UC shuttle and Metro stop, any sublet fee and who pays it, and the property company's Google rating. Subletting requires the landlord's consent. Chats are real-time, contact details stay hidden until each side chooses to share, and messages are deleted after 30 days. Roost runs as a web app (Next.js on Vercel with a Supabase backend) and a phone app (Expo).
+
+Prototype: https://github.com/trivinity/roost-uc-sublease (live demo: https://roost-uc-sublease.vercel.app)

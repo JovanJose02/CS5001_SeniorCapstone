@@ -4,6 +4,15 @@ Team: Danvanth Vanganuri, Jovan Jose Asker Fredy, Mohamed Aidja
 
 Criterion: completeness, feasibility, clarity, risk. Priority: must-fix, worth considering, out of scope for now.
 
+> **Status update (2026-10-28).** D2 has been superseded by the Roost prototype ([roost-uc-sublease](https://github.com/trivinity/roost-uc-sublease)); see [Technical_Specification.md](Technical_Specification.md) v2.0 §7. The open self-audit items now stand as follows:
+> - **PR-S05**: moot. Supabase's emailed link replaced the custom token; delivery testing is Tasklist T19.
+> - **PR-S07**: closed. Listings can be marked rented (host) or removed (staff).
+> - **PR-S08**: closed. Email goes through Supabase Auth with custom SMTP (T19).
+> - **PR-S10**: still open as GQ-02 / T4.
+> - **PR-S12**: moot. There is no ACCOUNT_VERIFIED audit row in the prototype.
+>
+> The tables below are the D2 record and are unchanged.
+
 ## 1. Self-audit action items (pre-review, not peer feedback)
 
 | ID | Criterion | Issue | Raised by | Action | Owner | Priority | Due | Status |
